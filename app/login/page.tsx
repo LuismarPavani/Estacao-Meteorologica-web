@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
 
@@ -16,7 +17,7 @@ export default function Login() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user, password }),
     });
-    if (r.ok) { router.push('/'); router.refresh(); return; }
+    if (r.ok) { router.push('/painel'); router.refresh(); return; }
     setError((await r.json()).error ?? 'Não foi possível entrar.'); setBusy(false);
   }
 
@@ -31,6 +32,7 @@ export default function Login() {
         <button className="btn" disabled={busy}>{busy ? 'Entrando…' : 'Entrar'}</button>
         {error && <p className="error">{error}</p>}
       </form>
+      <p className="small" style={{ marginTop: 16 }}><Link href="/"><u>Voltar à página pública</u></Link></p>
     </div>
   );
 }

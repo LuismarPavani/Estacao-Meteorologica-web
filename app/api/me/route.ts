@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { maskKey } from '@/lib/mask';
 import { hashPassword } from '@/lib/password';
 import { getUser, unauthorized } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
@@ -9,7 +10,7 @@ export async function GET() {
   const u = await getUser();
   if (!u) return unauthorized();
   const { data } = await supabase.from('users').select('owm_key').eq('id', u.id).single();
-  return NextResponse.json({ ...u, has_owm_key: !!data?.owm_key });
+  return NextResponse.json({ ...u, has_owm_key: !!data?.owm_key, owm_key_masked: maskKey(data?.owm_key) });
 }
 
 // O próprio usuário troca a chave da OpenWeatherMap e/ou a senha
@@ -18,7 +19,10 @@ export async function PATCH(req: NextRequest) {
   if (!u) return unauthorized();
   const b = await req.json();
   const upd: Record<string, unknown> = {};
-  if ('owm_key' in b) upd.owm_key = String(b.owm_key ?? '').trim() || null;
+  if ('owm_key' in b) {
+    const k = String(b.owm_key ?? '').trim();
+    if (!k.includes('*')) upd.owm_key = k || null; // valor mascarado = sem alteração
+  }
   if (b.password) {
     if (String(b.password).length < 6) return NextResponse.json({ error: 'A senha precisa ter 6 ou mais caracteres.' }, { status: 400 });
     upd.password_hash = hashPassword(String(b.password));

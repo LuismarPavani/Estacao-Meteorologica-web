@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import InstallButton from './InstallButton';
 import ThemeToggle from './ThemeToggle';
 
 export default function TopBar() {
@@ -11,7 +12,7 @@ export default function TopBar() {
 
   async function logout() {
     await fetch('/api/logout', { method: 'POST' });
-    router.push('/login'); router.refresh();
+    router.push('/'); router.refresh();
   }
   return (
     <header className="top">
@@ -22,11 +23,13 @@ export default function TopBar() {
         Estação meteorológica
       </div>
       <nav>
-        <Link href="/">Painel</Link>
+        <Link href="/painel">Painel</Link>
         <Link href="/devices">Dispositivos</Link>
         {me?.role === 'admin' && <Link href="/users">Usuários</Link>}
         <Link href="/account">Minha conta</Link>
+        <Link href="/">Página pública</Link>
         <button className="link" onClick={logout}>Sair{me ? ` (${me.username})` : ''}</button>
+        <InstallButton />
         <ThemeToggle />
       </nav>
     </header>

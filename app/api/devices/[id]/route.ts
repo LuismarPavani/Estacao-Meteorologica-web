@@ -10,9 +10,10 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   if (!u) return unauthorized();
   const { id } = await params;
   if (!(await canAccessDevice(u, id))) return forbidden();
-  const { name, description } = await req.json();
-  const { error } = await supabase.from('devices')
-    .update({ name: name?.trim() || '', description: description?.trim() || null }).eq('id', id);
+  const { name, description, is_public } = await req.json();
+  const upd: Record<string, unknown> = { name: name?.trim() || '', description: description?.trim() || null };
+  if (u.role === 'admin' && typeof is_public === 'boolean') upd.is_public = is_public; // só admin publica
+  const { error } = await supabase.from('devices').update(upd).eq('id', id);
   if (error) return NextResponse.json({ error: 'Erro ao salvar.' }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

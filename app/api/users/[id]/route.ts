@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     if ((id === me.id || root) && b.role !== 'admin') return err('Este usuário precisa continuar como admin.');
     upd.role = b.role === 'admin' ? 'admin' : 'user';
   }
-  if (typeof b.owm_key === 'string') upd.owm_key = b.owm_key.trim() || null;
+  if (typeof b.owm_key === 'string' && !b.owm_key.includes('*')) upd.owm_key = b.owm_key.trim() || null; // valor mascarado = sem alteração
   if (b.password) {
     if (root) return err('A senha do usuário principal é a variável ADMIN_PASSWORD no Vercel.');
     if (String(b.password).length < 6) return err('A senha precisa ter 6 ou mais caracteres.');

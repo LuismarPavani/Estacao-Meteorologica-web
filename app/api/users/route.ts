@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { maskKey } from '@/lib/mask';
 import { hashPassword } from '@/lib/password';
 import { forbidden, getUser, isRootUser, setUserDevices, unauthorized } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
@@ -15,7 +16,7 @@ export async function GET() {
   ]);
   if (users.error || links.error) return NextResponse.json({ error: 'db error' }, { status: 500 });
   return NextResponse.json(users.data.map(({ owm_key, ...x }) => ({
-    ...x, has_owm_key: !!owm_key, is_root: isRootUser(x.username),
+    ...x, has_owm_key: !!owm_key, owm_key_masked: maskKey(owm_key), is_root: isRootUser(x.username),
     device_ids: links.data.filter(l => l.user_id === x.id).map(l => l.device_id),
   })));
 }
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase.from('users').insert({
     username, password_hash: hashPassword(String(b.password)),
     role: b.role === 'admin' ? 'admin' : 'user',
-    owm_key: String(b.owm_key ?? '').trim() || null,
+    owm_key: String(b.owm_key ?? '').includes('*') ? null : String(b.owm_key ?? '').trim() || null,
   }).select('id').single();
   if (error) return err(error.code === '23505' ? 'Esse usuário já existe.' : 'Erro ao salvar.', error.code === '23505' ? 409 : 500);
   if (b.role !== 'admin') await setUserDevices(data.id, b.device_ids);
