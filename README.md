@@ -23,6 +23,8 @@ Feito com **Next.js** (hospedado no **Vercel**) e **Supabase** (Postgres).
 - **Estatísticas do período**: mínima, máxima (com data e hora) e média de temperatura e umidade.
 - Gráfico com médias por hora nos períodos de 7 e 30 dias (mais leve no celular) e **exportação CSV** das leituras.
 - Informações do dispositivo: ID, IP, firmware, cidade e horário da última leitura.
+- **Diagnóstico do ESP** (para quem tem acesso): alimentação (energia externa ou bateria), estado do sensor, tempo ligado, motivo do último reinício (travamentos aparecem em vermelho), memória livre, intervalo de envio, tela do OLED e ID do chip.
+- **Sensor com defeito**: se o ESP informa `sensor_ok: false`, o painel avisa, não grava a leitura (que viria como 0,0) e mantém a última leitura boa.
 - **Atalho para a página do ESP**: para admins, o IP do dispositivo é um link que abre `http://IP/` (a tela inicial do próprio ESP, com o atalho para as configurações) em outra aba. Funciona com o navegador na mesma rede do ESP. Os demais usuários veem apenas o IP.
 - **Tema claro e escuro**, com o botão no topo (lembra a escolha e, na primeira visita, segue o tema do sistema).
 - Layout responsivo para celular.
@@ -30,6 +32,8 @@ Feito com **Next.js** (hospedado no **Vercel**) e **Supabase** (Postgres).
 **Notificações push (alertas)**
 - Cada usuário define, **para cada ESP**, limites de **temperatura mínima e máxima**, **umidade mínima e máxima** e um **percentual de bateria** para o aviso de bateria baixa (em *Minha conta*).
 - Ao receber uma leitura, a API compara com os limites de cada usuário que tem acesso ao ESP e envia a notificação para os aparelhos dele, mesmo com o app fechado.
+- Também avisa **eventos do ESP**: queda de energia (energia externa para bateria), falha do sensor e reinício inesperado (exceção ou watchdog). Cada tipo pode ser ligado ou desligado por ESP.
+- A bateria não gera aviso enquanto o ESP está na energia externa.
 - O aviso sai quando o valor passa do limite e se repete depois de 2 horas (6 horas na bateria) se continuar fora; opcionalmente avisa quando **voltar ao normal**. Uma folga evita avisos repetidos quando o valor oscila no limite.
 - Cada celular ou navegador ativa as notificações uma vez, com botão de teste. No iPhone (iOS 16.4 ou mais novo) é preciso instalar o app pela Tela de Início.
 
@@ -89,7 +93,7 @@ app/
     push/*                registro do aparelho, chave pública e teste
     alerts, alerts/[id]   regras de alerta por usuário e ESP
 components/                Dashboard (público e privado), TopBar, PublicBar, ThemeToggle, Battery, Notifications, PWA
-lib/                       auth (JWT), password (scrypt), session, supabase, owm, readings, public, push, alerts, format
+lib/                       auth (JWT), password (scrypt), session, supabase, owm, readings, readingSchema (zod), public, push, alerts, format
 public/                    sw.js, offline.html e ícones do app
 app/manifest.ts            manifesto do PWA
 esp8266/WeatherApi.h       exemplo de envio para o firmware do ESP
@@ -97,6 +101,7 @@ schema.sql                 banco novo
 migration.sql              atualização de um banco existente
 migration-v2.sql           adiciona a página pública (coluna is_public)
 migration-v3.sql           adiciona as notificações push (aparelhos, regras e estado dos alertas)
+migration-v4.sql           adiciona os campos de diagnóstico do ESP e os eventos de alerta
 middleware.ts              protege páginas e API (exceto página pública, login e POST de leituras)
 ```
 
@@ -105,7 +110,7 @@ middleware.ts              protege páginas e API (exceto página pública, logi
 ### 1. Supabase
 
 1. Crie um projeto em [supabase.com](https://supabase.com).
-2. No **SQL Editor**, rode `schema.sql` (banco novo). Para atualizar um banco existente, rode `migration.sql`, `migration-v2.sql` e `migration-v3.sql`, nessa ordem, pulando os que já rodou; todos mantêm os dados.
+2. No **SQL Editor**, rode `schema.sql` (banco novo). Para atualizar um banco existente, rode `migration.sql`, `migration-v2.sql`, `migration-v3.sql` e `migration-v4.sql`, nessa ordem, pulando os que já rodou; todos mantêm os dados.
 3. Em **Project Settings → API**, copie a **URL do projeto**. Em **API Keys**, copie a chave secreta (`sb_secret_...`) ou, na aba *Legacy API Keys*, a `service_role`.
 
 ### 2. Vercel
@@ -168,33 +173,51 @@ O ESP faz um `POST` HTTPS a cada **15 minutos**. O arquivo `esp8266/WeatherApi.h
   "city_name": "Franca",
   "ip": "192.168.0.50",
   "rssi": -62,
-  "firmware": "1.0",
+  "firmware": "2.8",
+  "battery_active": true,
   "battery": 83,
   "battery_voltage": 4.02,
-  "battery_active": true
+  "external_power": false,
+  "sensor_ok": true,
+  "uptime_s": 86400,
+  "reset_reason": "Power on",
+  "free_heap": 24120,
+  "chip_id": "A1B2C3",
+  "send_interval_s": 900,
+  "display_on": true,
+  "rssi_pct": 76
 }
 ```
 
-| Campo | Obrigatório | Descrição |
-|---|---|---|
-| `device_id` | sim | ID do ESP (texto, até 64 caracteres) |
-| `temperature` | sim | Temperatura em °C (número) |
-| `humidity` | sim | Umidade em % (número) |
-| `city_id` | não | Código da cidade na OpenWeatherMap |
-| `city_name` | não | Nome da cidade |
-| `ip`, `rssi`, `firmware` | não | Dados do dispositivo (rssi em dBm) |
-| `battery` | não | Carga em % |
-| `battery_voltage` | não | Tensão da bateria em V |
-| `battery_active` | não | `true` se há bateria detectada |
+Só `device_id`, `temperature` e `humidity` são obrigatórios; todo o resto é opcional, então um ESP com firmware antigo continua sendo aceito. Campos desconhecidos são ignorados. O horário da leitura é o da chegada no servidor.
 
-Respostas: `200 {"ok":true}`, `400 invalid payload`, `401 unauthorized` (chave errada) e `500 db error`.
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `device_id` | texto | **Obrigatório.** Até 32 caracteres: letras, números, `-`, `_` e `.` |
+| `temperature` | número | **Obrigatório.** °C, de -40 a 85 |
+| `humidity` | número | **Obrigatório.** %, de 0 a 100 |
+| `ip`, `rssi`, `firmware` | texto, inteiro, texto | Dados do dispositivo (`rssi` em dBm) |
+| `city_id`, `city_name` | inteiro, texto | Cidade na OpenWeatherMap (`city_id` pode ser `null`; `city_name` pode ser vazio) |
+| `battery_active` | booleano | `true` se há bateria detectada |
+| `battery`, `battery_voltage` | inteiro, número | Carga em % (0 a 100) e tensão em V |
+| `external_power` | booleano ou `null` | `true` = energia externa, `false` = bateria, `null` = ESP sem placa UPS |
+| `sensor_ok` | booleano | `false` = o sensor parou de ler (a leitura não é gravada) |
+| `uptime_s` | inteiro | Segundos desde o último boot |
+| `reset_reason` | texto | Motivo do último reinício (por exemplo, `Power on`, `Exception`, `Hardware Watchdog`) |
+| `free_heap` | inteiro | Memória livre em bytes |
+| `chip_id` | texto | ID do chip em hexadecimal |
+| `send_interval_s` | inteiro | Segundos entre envios (o painel marca offline depois de 2,5 vezes esse intervalo) |
+| `display_on` | booleano | Tela do OLED acesa |
+| `rssi_pct` | inteiro | Aceito, mas ignorado: o painel calcula o percentual pelo `rssi` |
+
+Respostas: `200 {"ok":true}`, `400 invalid payload` (com a lista `details` dizendo qual campo está errado), `401 unauthorized` (chave errada) e `500 db error`.
 
 Teste rápido:
 
 ```bash
 curl -X POST https://SEU-PROJETO.vercel.app/api/readings \
   -H "Content-Type: application/json" -H "x-device-key: SUA_DEVICE_KEY" \
-  -d '{"device_id":"esp8266-sala","temperature":24.5,"humidity":61.3,"city_id":3463011,"city_name":"Franca"}'
+  -d '{"device_id":"esp8266-sala","temperature":24.5,"humidity":61.3,"city_id":3463011,"city_name":"Franca","external_power":true,"sensor_ok":true}'
 ```
 
 ### Demais rotas (exigem login)
@@ -225,9 +248,9 @@ curl -X POST https://SEU-PROJETO.vercel.app/api/readings \
 | `push_subscriptions` | Aparelhos registrados para receber notificações |
 | `alert_rules` | Limites de alerta de cada usuário em cada ESP |
 | `alert_state` | Quais alertas estão ativos e quando foi o último aviso (evita repetição) |
-| `devices` | ESPs: nome, descrição, se é público, IP, Wi-Fi, bateria, firmware, cidade e última leitura |
+| `devices` | ESPs: nome, descrição, se é público, IP, Wi-Fi, bateria, firmware, cidade, última leitura e diagnóstico (alimentação, sensor, tempo ligado, reinício, memória, chip, intervalo e tela) |
 | `user_devices` | Quais ESPs cada usuário normal pode ver |
-| `readings` | Histórico de temperatura, umidade e cidade |
+| `readings` | Histórico de temperatura, umidade e cidade, com alimentação, tempo ligado, motivo do reinício e memória livre |
 | `device_cities` | Cidades já usadas por cada ESP (alimenta o seletor) |
 
 As tabelas têm RLS ligado e nenhuma policy: só a API, com a chave de servidor, acessa os dados.
@@ -246,11 +269,11 @@ As tabelas têm RLS ligado e nenhuma policy: só a API, com a chave de servidor,
 | Sintoma | Causa provável |
 |---|---|
 | `404 DEPLOYMENT_NOT_FOUND` | Endereço errado ou deploy que falhou: confira em **Deployments** no Vercel |
-| `400 invalid payload` | Corpo vazio ou sem `device_id`, `temperature` e `humidity` (números) |
+| `400 invalid payload` | Corpo vazio ou campo fora do formato; a resposta traz `details` com o campo errado (por exemplo, `device_id` com mais de 32 caracteres ou temperatura fora de -40 a 85) |
 | `401 unauthorized` na API do ESP | `x-device-key` diferente de `DEVICE_KEY` |
 | `500 db error` | Variáveis do Supabase erradas, falta de *Redeploy* ou `schema.sql` / `migration.sql` não executado |
 | "A OpenWeatherMap recusou a chave" | Chave errada, ou nova demais e ainda não ativada |
-| ESP aparece offline | Sem leitura há mais de 40 minutos (o envio é a cada 15) |
+| ESP aparece offline | Sem leitura há mais de 2,5 vezes o intervalo de envio (37 minutos, se o ESP não informar `send_interval_s` e enviar a cada 15) |
 | Usuário normal não vê nenhum ESP | Um admin precisa liberar os ESPs em **Usuários** |
 | Página pública vazia | Nenhum ESP marcado como público em **Dispositivos** (e falta rodar `migration-v2.sql`) |
 | Não chegam notificações | Confira as variáveis `VAPID_*` e o `migration-v3.sql`, use **Enviar teste** em Minha conta e, no Android, desative a economia de bateria agressiva para o navegador |

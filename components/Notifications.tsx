@@ -6,10 +6,11 @@ import { Device } from '@/lib/format';
 type Rule = {
   device_id: string; enabled: boolean; temp_min: number | null; temp_max: number | null;
   hum_min: number | null; hum_max: number | null; battery_min: number | null; notify_recovery: boolean;
+  notify_power: boolean; notify_sensor: boolean; notify_restart: boolean;
 };
 type Form = {
   enabled: boolean; temp_min: string; temp_max: string; hum_min: string; hum_max: string;
-  battery_min: string; notify_recovery: boolean;
+  battery_min: string; notify_recovery: boolean; notify_power: boolean; notify_sensor: boolean; notify_restart: boolean;
 };
 type Field = 'temp_min' | 'temp_max' | 'hum_min' | 'hum_max' | 'battery_min';
 
@@ -21,6 +22,7 @@ const show = (v: number | null | undefined) => (v === null || v === undefined ? 
 const toForm = (r?: Rule): Form => ({
   enabled: r?.enabled ?? true, temp_min: show(r?.temp_min), temp_max: show(r?.temp_max), hum_min: show(r?.hum_min),
   hum_max: show(r?.hum_max), battery_min: show(r?.battery_min), notify_recovery: r?.notify_recovery ?? true,
+  notify_power: r?.notify_power ?? true, notify_sensor: r?.notify_sensor ?? true, notify_restart: r?.notify_restart ?? true,
 });
 // Aceita vírgula ou ponto; vazio = sem limite; NaN = texto inválido
 const parse = (v: string) => { const t = v.trim().replace(',', '.'); if (t === '') return null; const n = Number(t); return Number.isFinite(n) ? n : NaN; };
@@ -113,7 +115,10 @@ export default function Notifications() {
     setSaving(id); st(id, null);
     try {
       const r = await fetch(`/api/alerts/${encodeURIComponent(id)}`, {
-        method: 'PUT', headers: json, body: JSON.stringify({ ...vals, enabled: f.enabled, notify_recovery: f.notify_recovery }),
+        method: 'PUT', headers: json, body: JSON.stringify({
+          ...vals, enabled: f.enabled, notify_recovery: f.notify_recovery,
+          notify_power: f.notify_power, notify_sensor: f.notify_sensor, notify_restart: f.notify_restart,
+        }),
       });
       if (!r.ok) { st(id, { ok: false, text: await errorText(r) }); return; }
       const { rule } = (await r.json()) as { rule: Rule };
@@ -187,6 +192,15 @@ export default function Notifications() {
               </label>
               <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 <input type="checkbox" checked={f.notify_recovery} onChange={e => edit(d.id, { notify_recovery: e.target.checked })} /> Avisar quando voltar ao normal
+              </label>
+              <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <input type="checkbox" checked={f.notify_power} onChange={e => edit(d.id, { notify_power: e.target.checked })} /> Queda de energia
+              </label>
+              <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <input type="checkbox" checked={f.notify_sensor} onChange={e => edit(d.id, { notify_sensor: e.target.checked })} /> Falha do sensor
+              </label>
+              <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <input type="checkbox" checked={f.notify_restart} onChange={e => edit(d.id, { notify_restart: e.target.checked })} /> Reinício inesperado
               </label>
             </div>
             <div className="actions" style={{ gridColumn: '1 / -1' }}>

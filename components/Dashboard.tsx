@@ -7,7 +7,7 @@ import TopBar from '@/components/TopBar';
 import PublicBar from '@/components/PublicBar';
 import Battery from '@/components/Battery';
 import IpLink from '@/components/IpLink';
-import { Device, comfortLabel, dewPoint, heatIndex, isOnline, timeAgo, wifiPct } from '@/lib/format';
+import { Device, comfortLabel, dewPoint, formatUptime, heatIndex, isOnline, resetInfo, timeAgo, wifiPct } from '@/lib/format';
 
 type Reading = { created_at: string; temperature: number; humidity: number };
 type City = { city_id: number; city_name: string | null };
@@ -166,8 +166,8 @@ export default function Dashboard({ mode }: { mode: 'private' | 'public' }) {
               </select>
             )}
             <span className="muted">{dev.description}</span>
-            <span className="small"><span className={`dot ${isOnline(dev.last_seen) ? 'on' : ''}`} />
-              {isOnline(dev.last_seen) ? 'Online' : 'Offline'}, visto {timeAgo(dev.last_seen)}</span>
+            <span className="small"><span className={`dot ${isOnline(dev.last_seen, dev.send_interval_s) ? 'on' : ''}`} />
+              {isOnline(dev.last_seen, dev.send_interval_s) ? 'Online' : 'Offline'}, visto {timeAgo(dev.last_seen)}</span>
           </div>
 
           {w ? (
@@ -224,6 +224,11 @@ export default function Dashboard({ mode }: { mode: 'private' | 'public' }) {
           )}
 
           <h2>Sensor do ESP</h2>
+          {!pub && dev.sensor_ok === false && (
+            <p className="panel error" role="alert" style={{ margin: '0 0 12px' }}>
+              O sensor de temperatura e umidade parou de ler. Os valores abaixo são da última leitura boa e o histórico não está recebendo dados novos.
+            </p>
+          )}
           <section className="tiles">
             <div className="tile" style={{ ['--tc' as string]: 'var(--temp)' }}>
               <div className="label">Temperatura</div>
@@ -324,6 +329,14 @@ export default function Dashboard({ mode }: { mode: 'private' | 'public' }) {
                   <div><dt>Cidade (código OpenWeatherMap)</dt><dd>{dev.city_name ? `${dev.city_name} (${dev.city_id})` : dev.city_id ?? '--'}</dd></div>
                   <div><dt>Última leitura</dt><dd>{dev.last_seen ? fmt(dev.last_seen) : '--'}</dd></div>
                   <div><dt>Página pública</dt><dd>{dev.is_public ? 'Visível' : 'Oculto'}</dd></div>
+                  <div><dt>Alimentação</dt><dd>{dev.external_power === true ? 'Energia externa' : dev.external_power === false ? 'Bateria' : 'Sem placa UPS ou não informado'}</dd></div>
+                  <div><dt>Sensor</dt><dd>{dev.sensor_ok === false ? 'Com falha' : dev.sensor_ok === true ? 'Lendo normalmente' : '--'}</dd></div>
+                  <div><dt>Tempo ligado</dt><dd className="mono">{dev.uptime_s != null ? formatUptime(dev.uptime_s) : '--'}</dd></div>
+                  <div><dt>Último reinício</dt><dd>{(() => { const ri = resetInfo(dev.reset_reason); return ri ? <span style={ri.abnormal ? { color: 'var(--bad)' } : undefined}>{ri.text}</span> : '--'; })()}</dd></div>
+                  <div><dt>Memória livre</dt><dd className="mono">{dev.free_heap != null ? `${(dev.free_heap / 1024).toFixed(1).replace('.', ',')} kB` : '--'}</dd></div>
+                  <div><dt>Intervalo de envio</dt><dd className="mono">{dev.send_interval_s ? `${Math.round(dev.send_interval_s / 60)} min` : '--'}</dd></div>
+                  <div><dt>Tela do OLED</dt><dd>{dev.display_on == null ? '--' : dev.display_on ? 'Acesa' : 'Apagada'}</dd></div>
+                  <div><dt>ID do chip</dt><dd className="mono">{dev.chip_id ?? '--'}</dd></div>
                 </dl>
               </section>
             </>

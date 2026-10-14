@@ -26,6 +26,7 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
     user_id: u.id, device_id: id, enabled: b.enabled !== false,
     temp_min, temp_max, hum_min, hum_max, battery_min: bat === null ? null : Math.round(bat),
     notify_recovery: b.notify_recovery !== false,
+    notify_power: b.notify_power !== false, notify_sensor: b.notify_sensor !== false, notify_restart: b.notify_restart !== false,
   }, { onConflict: 'user_id,device_id' }).select().single();
   if (error) {
     console.error('alert_rules upsert', error.message);

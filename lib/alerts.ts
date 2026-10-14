@@ -1,10 +1,16 @@
 import { sendToUser } from './push';
 import { supabase } from './supabase';
 
-type Reading = { temperature: number; humidity: number; battery: number | null; battery_active: boolean | null };
+type Reading = {
+  temperature: number; humidity: number; battery: number | null; battery_active: boolean | null;
+  external_power: boolean | null; sensor_ok: boolean | null;
+};
+// Evento = mudança de estado informada pelo ESP (queda de energia, sensor, reinício)
+export type AlertEvent = { kind: 'power' | 'sensor' | 'restart'; recovery: boolean; text: string };
 type Rule = {
   user_id: string; temp_min: number | null; temp_max: number | null; hum_min: number | null; hum_max: number | null;
   battery_min: number | null; notify_recovery: boolean;
+  notify_power: boolean; notify_sensor: boolean; notify_restart: boolean;
 };
 type Def = {
   m: string; low: boolean; label: string; unit: string; word: string;
@@ -26,7 +32,7 @@ const f1 = (n: number) => n.toFixed(1).replace('.', ',');
 const fl = (n: number) => String(n).replace('.', ',');
 
 // Chamada a cada leitura recebida: compara com as regras de cada usuário que tem acesso ao ESP
-export async function checkAlerts(deviceId: string, deviceName: string, r: Reading) {
+export async function checkAlerts(deviceId: string, deviceName: string, r: Reading, events: AlertEvent[] = []) {
   const { data: rules } = await supabase.from('alert_rules').select('*').eq('device_id', deviceId).eq('enabled', true);
   if (!rules?.length) return;
   const ids = rules.map(x => x.user_id);
@@ -49,9 +55,13 @@ export async function checkAlerts(deviceId: string, deviceName: string, r: Readi
 
     for (const d of DEFS) {
       const st = states.data?.find(s => s.user_id === rule.user_id && s.metric === d.m);
-      const lim = d.limit(rule), val = d.value(r);
       const row = (active: boolean, last: string | null) =>
         upserts.push({ user_id: rule.user_id, device_id: deviceId, metric: d.m, active, last_sent: last });
+      // Sensor com defeito envia 0.0: não avalia temperatura nem umidade
+      if (r.sensor_ok === false && (d.m.startsWith('temp') || d.m.startsWith('hum'))) continue;
+      // Na energia externa a bateria não está descarregando: zera o alerta para avisar de novo se for desligada ainda baixa
+      if (d.m === 'battery_low' && r.external_power === true) { if (st?.active) row(false, st.last_sent); continue; }
+      const lim = d.limit(rule), val = d.value(r);
 
       if (lim == null) { if (st?.active) row(false, st.last_sent); continue; } // limite removido
       if (val == null) continue;                                               // sem dado: mantém o estado
@@ -70,6 +80,12 @@ export async function checkAlerts(deviceId: string, deviceName: string, r: Readi
         if (rule.notify_recovery) lines.push(`${d.label} voltou ao normal: ${num}${d.unit}`);
         row(false, st.last_sent);
       }
+    }
+
+    for (const ev of events) {
+      if (ev.recovery && !rule.notify_recovery) continue;
+      const wanted = ev.kind === 'power' ? rule.notify_power : ev.kind === 'sensor' ? rule.notify_sensor : rule.notify_restart;
+      if (wanted) lines.push(ev.text);
     }
 
     if (upserts.length)

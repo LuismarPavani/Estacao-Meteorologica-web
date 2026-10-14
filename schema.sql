@@ -19,6 +19,8 @@ create table devices (
   city_id int, city_name text,
   last_temperature real, last_humidity real,
   last_seen timestamptz,
+  external_power boolean, sensor_ok boolean, uptime_s integer, reset_reason text,
+  free_heap integer, chip_id text, send_interval_s integer, display_on boolean,
   created_at timestamptz default now()
 );
 
@@ -34,6 +36,7 @@ create table readings (
   temperature real not null,
   humidity real not null,
   city_id int, city_name text,
+  external_power boolean, uptime_s integer, reset_reason text, free_heap integer,
   created_at timestamptz default now()
 );
 create index on readings (device_id, city_id, created_at desc);
@@ -71,6 +74,9 @@ create table alert_rules (
   hum_min real, hum_max real,
   battery_min int,                              -- avisa quando a bateria cair a esse % ou menos
   notify_recovery boolean not null default true, -- avisa também quando voltar ao normal
+  notify_power boolean not null default true,    -- queda de energia
+  notify_sensor boolean not null default true,   -- sensor parou de ler
+  notify_restart boolean not null default true,  -- reinício inesperado
   primary key (user_id, device_id)
 );
 

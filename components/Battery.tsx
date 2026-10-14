@@ -14,7 +14,9 @@ export default function Battery({ device, detail = true }: { device: Device; det
       <div className="sub">
         {b.status}{detail && b.volts !== null ? `, ${b.volts.toFixed(2)} V` : ''}
       </div>
-      {b.kind === 'low' && <div className="warn">Bateria baixa, recarregue em breve.</div>}
+      {device.external_power === true && <div className="sub">Energia externa conectada</div>}
+      {device.external_power === false && <div className="sub">Funcionando na bateria</div>}
+      {b.kind === 'low' && device.external_power !== true && <div className="warn">Bateria baixa, recarregue em breve.</div>}
     </div>
   );
 }

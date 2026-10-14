@@ -81,7 +81,7 @@ export default function Devices() {
             <span className="mono">ID: {d.id}</span>
             {d.ip && <span className="mono">IP: <IpLink ip={d.ip} isAdmin={isAdmin} /></span>}
             {d.city_id && <span>Cidade: {d.city_name ? `${d.city_name} (${d.city_id})` : d.city_id}</span>}
-            <span><span className={`dot ${isOnline(d.last_seen) ? 'on' : ''}`} />{isOnline(d.last_seen) ? 'Online' : 'Offline'}, visto {timeAgo(d.last_seen)}</span>
+            <span><span className={`dot ${isOnline(d.last_seen, d.send_interval_s) ? 'on' : ''}`} />{isOnline(d.last_seen, d.send_interval_s) ? 'Online' : 'Offline'}, visto {timeAgo(d.last_seen)}</span>
             {isAdmin && (
               <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 <input type="checkbox" checked={!!d.is_public}
