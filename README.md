@@ -515,7 +515,7 @@ Este projeto é distribuído sob a **licença MIT**. Inclua um arquivo `LICENSE`
 ```
 MIT License
 
-Copyright (c) 2026 SEU NOME
+Copyright (c) 2026 Luismar Pavani
 
 É concedida permissão, gratuitamente, a qualquer pessoa que obtenha uma cópia deste
 software e dos arquivos de documentação associados, para lidar com o Software sem
