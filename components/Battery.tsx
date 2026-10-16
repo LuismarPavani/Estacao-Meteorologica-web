@@ -4,7 +4,7 @@ export default function Battery({ device, detail = true }: { device: Device; det
   const b = batteryInfo(device);
   const cls = b.kind === 'ok' || b.kind === 'none' ? '' : b.kind;
   return (
-    <div>
+    <div className="batt-info">
       <div className={`batt ${cls}`}>
         <span className="icon">{b.pct !== null && <i style={{ width: `${Math.max(b.pct, 4)}%` }} />}</span>
         <span className="value">
@@ -12,7 +12,7 @@ export default function Battery({ device, detail = true }: { device: Device; det
         </span>
       </div>
       <div className="sub">
-        {b.status}{detail && b.volts !== null ? `, ${b.volts.toFixed(2)} V` : ''}
+        {b.status}{detail && b.volts !== null ? `, ${b.volts.toFixed(2).replace('.', ',')} V` : ''}
       </div>
       {device.external_power === true && <div className="sub">Energia externa conectada</div>}
       {device.external_power === false && <div className="sub">Funcionando na bateria</div>}

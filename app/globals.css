@@ -117,7 +117,7 @@ dl.info dt{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:v
 .checks{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px 10px}
 .checks label{display:flex;gap:7px;align-items:center;color:var(--ink);font-size:.88rem;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel2);cursor:pointer}
 .tag{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--muted)}
-.meta .batt{gap:6px}.meta .batt .value{font-size:.95rem;font-weight:600;color:var(--ink)}.meta .sub{display:inline}
+.meta .batt{gap:6px}.meta .batt .value{font-size:.95rem;font-weight:600;color:var(--ink)}.meta .batt-info .sub{display:block}
 .error{color:var(--bad);font-size:.9rem;margin:8px 0 0}
 .msg{color:var(--ok);font-size:.9rem;margin:8px 0 0}
 .form{display:grid;gap:12px;max-width:420px}
