@@ -1,6 +1,6 @@
 // Service worker mínimo: deixa o app instalável e mostra uma página amigável sem internet.
 // Dados (API) nunca ficam em cache, para não mostrar leituras velhas como se fossem atuais.
-const CACHE = 'ws-v2';
+const CACHE = 'ws-v3';
 const OFFLINE = '/offline.html';
 
 self.addEventListener('install', e => {
@@ -24,7 +24,8 @@ self.addEventListener('push', e => {
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
   e.waitUntil(self.registration.showNotification(d.title || 'Estação meteorológica', {
     body: d.body || '',
-    icon: '/icons/icon-192.png',
+    icon: '/icons/icon-192.png',   // ícone grande, dentro da notificação
+    badge: '/icons/badge-96.png',  // silhueta branca com fundo transparente: ícone pequeno da barra de status (Android)
     tag: d.tag,
     renotify: !!d.tag,
     data: { url: d.url || '/painel' },

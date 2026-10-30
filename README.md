@@ -258,6 +258,7 @@ Cada usuário configura, **para cada ESP**, em **Minha conta → Alertas por ESP
 - Sem internet, mostra uma página de aviso com botão para tentar de novo.
 - Os **dados nunca ficam em cache**: o Service Worker só trata a navegação, para não exibir leituras antigas como se fossem atuais.
 - O mesmo Service Worker (`public/sw.js`) recebe e exibe as notificações push; tocar abre o painel.
+- **Ícones da notificação:** `icon-192.png` aparece dentro da notificação e `badge-96.png` (silhueta branca com fundo transparente) é o ícone pequeno da barra de status do Android. Sem o `badge`, o Android mostra um sino genérico. Para a notificação aparecer com o nome e o ícone do app, instale o PWA.
 
 ---
 
@@ -394,7 +395,7 @@ As tabelas têm **RLS ligado e nenhuma policy**: só a API, com a chave de servi
 | `lib/auth.ts` e `app/api/login/route.ts` | Duração da sessão (7 dias) |
 | `lib/push.ts` | Validade do aviso (`TTL` de 1 h) |
 | `app/globals.css` (variáveis no topo) | Cores dos temas claro e escuro |
-| `public/icons/` | Ícones do app |
+| `public/icons/` | Ícones do app e da notificação (`badge-96.png` precisa ser só branco com transparência) |
 
 ---
 
