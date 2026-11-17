@@ -21,6 +21,7 @@ create table devices (
   last_seen timestamptz,
   external_power boolean, sensor_ok boolean, uptime_s integer, reset_reason text,
   free_heap integer, chip_id text, send_interval_s integer, display_on boolean,
+  lat real, lon real,                           -- coordenadas da cidade (firmware 3.3+)
   created_at timestamptz default now()
 );
 
@@ -43,8 +44,9 @@ create index on readings (device_id, city_id, created_at desc);
 
 create table device_cities (
   device_id text references devices(id) on delete cascade,
-  city_id int,
+  city_id int,                                  -- código da OpenWeatherMap (> 0) ou código interno das coordenadas (< 0)
   city_name text,
+  lat real, lon real,
   last_seen timestamptz default now(),
   primary key (device_id, city_id)
 );

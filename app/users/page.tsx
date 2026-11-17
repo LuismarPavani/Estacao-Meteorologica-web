@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import StatusMsg, { Status, errorText } from '@/components/StatusMsg';
-import TopBar from '@/components/TopBar';
+import AppNav from '@/components/AppNav';
 import { Device } from '@/lib/format';
 
 type U = {
@@ -75,7 +75,8 @@ export default function Users() {
 
   return (
     <main>
-      <TopBar />
+      <AppNav />
+      <h1 className="page">Usuários</h1>
       <h2>Novo usuário</h2>
       <form className="add panel" onSubmit={add}>
         <label>Usuário<input value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} autoComplete="off" required /></label>

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import TopBar from '@/components/TopBar';
+import AppNav from '@/components/AppNav';
 import PublicBar from '@/components/PublicBar';
 import Battery from '@/components/Battery';
 import IpLink from '@/components/IpLink';
@@ -25,6 +25,15 @@ const hm = (sec: number, tz: number) => new Date((sec + tz) * 1000).toISOString(
 const dayLabel = (date: string) =>
   new Date(`${date}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
 const dec = (n: number) => n.toFixed(1).replace('.', ',');
+
+// Cidade do ESP: nome, código da OpenWeatherMap (só os positivos; os negativos são internos) e coordenadas
+function cidadeTexto(d: Device) {
+  const partes: string[] = [];
+  if (d.city_id != null && d.city_id > 0) partes.push(`código ${d.city_id}`);
+  if (d.lat != null && d.lon != null) partes.push(`${d.lat.toFixed(4)}, ${d.lon.toFixed(4)}`);
+  const extra = partes.length ? ` (${partes.join(' · ')})` : '';
+  return d.city_name ? d.city_name + extra : partes.length ? partes.join(' · ') : '--';
+}
 
 // Períodos longos: médias por hora deixam o gráfico leve (7 dias = 168 pontos, 30 dias = 720)
 function hourly(rows: Reading[]): Reading[] {
@@ -136,7 +145,7 @@ export default function Dashboard({ mode }: { mode: 'private' | 'public' }) {
   const chartRows = hours > 24 ? hourly(data) : data;
   const chart = chartRows.map(p => ({ t: fmt(p.created_at), temperature: p.temperature, humidity: p.humidity }));
   const w = wx?.data;
-  const cityName = cities.find(c => c.city_id === city)?.city_name || w?.name || (city ? `Cidade ${city}` : '');
+  const cityName = cities.find(c => c.city_id === city)?.city_name || w?.name || (city && city > 0 ? `Cidade ${city}` : '');
   const st = stats(data, 'temperature'), sh = stats(data, 'humidity');
 
   const t = dev?.last_temperature, h = dev?.last_humidity;
@@ -146,7 +155,7 @@ export default function Dashboard({ mode }: { mode: 'private' | 'public' }) {
 
   return (
     <main>
-      {pub ? <PublicBar /> : <TopBar />}
+      {pub ? <PublicBar /> : <><AppNav /><h1 className="page">Painel</h1></>}
       {devices === null && <p className="muted">Carregando…</p>}
       {devices?.length === 0 && (
         pub
@@ -162,7 +171,7 @@ export default function Dashboard({ mode }: { mode: 'private' | 'public' }) {
             </select>
             {cities.length > 0 && (
               <select value={city ?? ''} onChange={e => selectCity(Number(e.target.value))} aria-label="Cidade">
-                {cities.map(c => <option key={c.city_id} value={c.city_id}>{c.city_name || `Cidade ${c.city_id}`}</option>)}
+                {cities.map(c => <option key={c.city_id} value={c.city_id}>{c.city_name || (c.city_id > 0 ? `Cidade ${c.city_id}` : 'Cidade (coordenadas)')}</option>)}
               </select>
             )}
             <span className="muted">{dev.description}</span>
@@ -193,7 +202,8 @@ export default function Dashboard({ mode }: { mode: 'private' | 'public' }) {
           ) : (
             <section className="panel" style={{ marginTop: 18 }}>
               <div className="eyebrow muted">Tempo na cidade</div>
-              {city === null && <p className="muted" style={{ margin: '6px 0 0' }}>Este ESP ainda não enviou o código da cidade (city_id).</p>}
+              {city === null && <p className="muted" style={{ margin: '6px 0 0' }}>Este ESP ainda não enviou a cidade (código ou coordenadas).</p>}
+              {wx?.error === 'no_location' && <p className="muted" style={{ margin: '6px 0 0' }}>Esta cidade não tem coordenadas salvas. Rode o migration-v5.sql no Supabase e aguarde o próximo envio do ESP.</p>}
               {city !== null && !wx && <p className="muted" style={{ margin: '6px 0 0' }}>Consultando a OpenWeatherMap…</p>}
               {wx?.error === 'no_key' && (pub
                 ? <p className="muted" style={{ margin: '6px 0 0' }}>O tempo da cidade não está disponível no momento.</p>
@@ -229,40 +239,20 @@ export default function Dashboard({ mode }: { mode: 'private' | 'public' }) {
               O sensor de temperatura e umidade parou de ler. Os valores abaixo são da última leitura boa e o histórico não está recebendo dados novos.
             </p>
           )}
-          <section className="tiles">
-            <div className="tile" style={{ ['--tc' as string]: 'var(--temp)' }}>
-              <div className="label">Temperatura</div>
-              <div className="value" style={{ color: 'var(--temp)' }}>
-                {t != null ? <>{t.toFixed(1)}<small> °C</small></> : '--'}
-              </div>
-            </div>
-            <div className="tile" style={{ ['--tc' as string]: 'var(--hum)' }}>
-              <div className="label">Umidade</div>
-              <div className="value" style={{ color: 'var(--hum)' }}>
-                {h != null ? <>{h.toFixed(1)}<small> %</small></> : '--'}
-              </div>
-            </div>
-            <div className="tile">
-              <div className="label">Sensação térmica</div>
-              <div className="value">{feel !== null ? <>{feel.toFixed(1)}<small> °C</small></> : '--'}</div>
-              <div className="sub">Índice de calor</div>
-            </div>
-            <div className="tile">
-              <div className="label">Ponto de orvalho</div>
-              <div className="value">{dp !== null ? <>{dp.toFixed(1)}<small> °C</small></> : '--'}</div>
-              <div className="sub">{dp !== null ? comfortLabel(dp) : 'Sem dados'}</div>
-            </div>
+          <section className="panel list">
+            <div className="li"><span className="k">Temperatura</span>
+              <span className="v big" style={{ color: 'var(--temp)' }}>{t != null ? <>{dec(t)}<small> °C</small></> : '--'}</span></div>
+            <div className="li"><span className="k">Umidade</span>
+              <span className="v big" style={{ color: 'var(--hum)' }}>{h != null ? <>{dec(h)}<small> %</small></> : '--'}</span></div>
+            <div className="li"><span className="k">Sensação térmica<small>índice de calor</small></span>
+              <span className="v">{feel !== null ? `${dec(feel)} °C` : '--'}</span></div>
+            <div className="li"><span className="k">Ponto de orvalho<small>{dp !== null ? comfortLabel(dp) : 'sem dados'}</small></span>
+              <span className="v">{dp !== null ? `${dec(dp)} °C` : '--'}</span></div>
             {!pub && (
               <>
-                <div className="tile">
-                  <div className="label">Sinal Wi-Fi</div>
-                  <div className="value">{dev.rssi !== null ? <>{wifiPct(dev.rssi)}<small> %</small></> : '--'}</div>
-                  <div className="sub">{dev.rssi !== null ? `${dev.rssi} dBm` : 'Sem dados'}</div>
-                </div>
-                <div className="tile" style={{ ['--tc' as string]: 'var(--ok)' }}>
-                  <div className="label">Bateria</div>
-                  <Battery device={dev} />
-                </div>
+                <div className="li"><span className="k">Sinal Wi-Fi</span>
+                  <span className="v">{dev.rssi !== null ? `${wifiPct(dev.rssi)}% · ${dev.rssi} dBm` : '--'}</span></div>
+                <div className="li"><span className="k">Bateria</span><span className="v"><Battery device={dev} /></span></div>
               </>
             )}
           </section>
@@ -321,24 +311,37 @@ export default function Dashboard({ mode }: { mode: 'private' | 'public' }) {
           {!pub && (
             <>
               <h2>Dispositivo</h2>
-              <section className="panel">
-                <dl className="info">
-                  <div><dt>ID</dt><dd className="mono">{dev.id}</dd></div>
-                  <div><dt>Endereço IP{isAdmin && dev.ip ? ' (abre a página do ESP)' : ''}</dt><dd className="mono"><IpLink ip={dev.ip} isAdmin={isAdmin} /></dd></div>
-                  <div><dt>Firmware</dt><dd className="mono">{dev.firmware ?? '--'}</dd></div>
-                  <div><dt>Cidade (código OpenWeatherMap)</dt><dd>{dev.city_name ? `${dev.city_name} (${dev.city_id})` : dev.city_id ?? '--'}</dd></div>
-                  <div><dt>Última leitura</dt><dd>{dev.last_seen ? fmt(dev.last_seen) : '--'}</dd></div>
-                  <div><dt>Página pública</dt><dd>{dev.is_public ? 'Visível' : 'Oculto'}</dd></div>
-                  <div><dt>Alimentação</dt><dd>{dev.external_power === true ? 'Energia externa' : dev.external_power === false ? 'Bateria' : 'Sem placa UPS ou não informado'}</dd></div>
-                  <div><dt>Sensor</dt><dd>{dev.sensor_ok === false ? 'Com falha' : dev.sensor_ok === true ? 'Lendo normalmente' : '--'}</dd></div>
-                  <div><dt>Tempo ligado</dt><dd className="mono">{dev.uptime_s != null ? formatUptime(dev.uptime_s) : '--'}</dd></div>
-                  <div><dt>Último reinício</dt><dd>{(() => { const ri = resetInfo(dev.reset_reason); return ri ? <span style={ri.abnormal ? { color: 'var(--bad)' } : undefined}>{ri.text}</span> : '--'; })()}</dd></div>
-                  <div><dt>Memória livre</dt><dd className="mono">{dev.free_heap != null ? `${(dev.free_heap / 1024).toFixed(1).replace('.', ',')} kB` : '--'}</dd></div>
-                  <div><dt>Intervalo de envio</dt><dd className="mono">{dev.send_interval_s ? `${Math.round(dev.send_interval_s / 60)} min` : '--'}</dd></div>
-                  <div><dt>Tela do OLED</dt><dd>{dev.display_on == null ? '--' : dev.display_on ? 'Acesa' : 'Apagada'}</dd></div>
-                  <div><dt>ID do chip</dt><dd className="mono">{dev.chip_id ?? '--'}</dd></div>
-                </dl>
-              </section>
+              <div className="groups">
+                <div>
+                  <div className="grp-t">Identificação</div>
+                  <section className="panel list">
+                    <div className="li"><span className="k">ID</span><span className="v mono">{dev.id}</span></div>
+                    <div className="li"><span className="k">ID do chip</span><span className="v mono">{dev.chip_id ?? '--'}</span></div>
+                    <div className="li"><span className="k">Firmware</span><span className="v mono">{dev.firmware ?? '--'}</span></div>
+                    <div className="li"><span className="k">Endereço IP{isAdmin && dev.ip ? <small>abre a página do ESP</small> : null}</span><span className="v mono"><IpLink ip={dev.ip} isAdmin={isAdmin} /></span></div>
+                    <div className="li"><span className="k">Página pública</span><span className="v">{dev.is_public ? 'Visível' : 'Oculto'}</span></div>
+                  </section>
+                </div>
+                <div>
+                  <div className="grp-t">Estado</div>
+                  <section className="panel list">
+                    <div className="li"><span className="k">Última leitura</span><span className="v">{dev.last_seen ? fmt(dev.last_seen) : '--'}</span></div>
+                    <div className="li"><span className="k">Sensor</span><span className="v">{dev.sensor_ok === false ? 'Com falha' : dev.sensor_ok === true ? 'Lendo normalmente' : '--'}</span></div>
+                    <div className="li"><span className="k">Alimentação</span><span className="v">{dev.external_power === true ? 'Energia externa' : dev.external_power === false ? 'Bateria' : 'Sem placa UPS'}</span></div>
+                    <div className="li"><span className="k">Tela do OLED</span><span className="v">{dev.display_on == null ? '--' : dev.display_on ? 'Acesa' : 'Apagada'}</span></div>
+                    <div className="li"><span className="k">Memória livre</span><span className="v">{dev.free_heap != null ? `${(dev.free_heap / 1024).toFixed(1).replace('.', ',')} kB` : '--'}</span></div>
+                  </section>
+                </div>
+                <div>
+                  <div className="grp-t">Funcionamento</div>
+                  <section className="panel list">
+                    <div className="li"><span className="k">Cidade</span><span className="v">{cidadeTexto(dev)}</span></div>
+                    <div className="li"><span className="k">Intervalo de envio</span><span className="v">{dev.send_interval_s ? `${Math.round(dev.send_interval_s / 60)} min` : '--'}</span></div>
+                    <div className="li"><span className="k">Tempo ligado</span><span className="v">{dev.uptime_s != null ? formatUptime(dev.uptime_s) : '--'}</span></div>
+                    <div className="li"><span className="k">Último reinício</span><span className="v">{(() => { const ri = resetInfo(dev.reset_reason); return ri ? <span style={ri.abnormal ? { color: 'var(--bad)' } : undefined}>{ri.text}</span> : '--'; })()}</span></div>
+                  </section>
+                </div>
+              </div>
             </>
           )}
         </>

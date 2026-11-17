@@ -1,9 +1,9 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Notifications from '@/components/Notifications';
+import AppNav, { MaisNoCelular } from '@/components/AppNav';
 import StatusMsg, { Status, errorText } from '@/components/StatusMsg';
-import TopBar from '@/components/TopBar';
 
 type Me = { username: string; role: string; has_owm_key: boolean; owm_key_masked: string | null };
 
@@ -39,12 +39,17 @@ export default function Account() {
 
   return (
     <main>
-      <TopBar />
-      <h2>Minha conta</h2>
-      {me && <p className="muted">Usuário <b>{me.username}</b>, tipo {me.role === 'admin' ? 'admin (vê todos os ESPs)' : 'normal (vê só os seus ESPs)'}.</p>}
+      <AppNav />
+      <h1 className="page">Minha conta</h1>
+      {me && (
+        <section className="panel list">
+          <div className="li"><span className="k">Usuário</span><span className="v">{me.username}</span></div>
+          <div className="li"><span className="k">Tipo</span><span className="v">{me.role === 'admin' ? 'Admin (vê todos os ESPs)' : 'Normal (vê só os seus ESPs)'}</span></div>
+        </section>
+      )}
 
       <h2>Chave da OpenWeatherMap</h2>
-      <div className="form">
+      <div className="form panel">
         <p className="muted small" style={{ margin: 0 }}>
           {me?.has_owm_key ? 'Há uma chave cadastrada (só os 4 últimos caracteres aparecem). Para trocar, clique no campo e cole a nova.' : 'Nenhuma chave cadastrada.'}
         </p>
@@ -60,7 +65,7 @@ export default function Account() {
       </div>
 
       <h2>Trocar senha</h2>
-      <div className="form">
+      <div className="form panel">
         <label>Nova senha<input type="password" value={pw} onChange={e => { setPw(e.target.value); setPwSt(null); }} autoComplete="new-password" /></label>
         <div className="actions">
           <button className="btn" disabled={pw.length < 6 || busy} onClick={() => patch({ password: pw }, setPwSt, 'Senha alterada.')}>Alterar senha</button>
@@ -68,7 +73,8 @@ export default function Account() {
         </div>
       </div>
 
-      <Notifications />
+      <p className="muted small">As notificações e os limites de alerta ficam em <Link href="/alerts"><u>Alertas</u></Link>.</p>
+      <MaisNoCelular me={me} />
     </main>
   );
 }

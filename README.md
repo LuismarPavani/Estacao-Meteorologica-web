@@ -6,7 +6,7 @@ Painel web para acompanhar uma ou mais estações meteorológicas **ESP8266**: r
 ![Banco](https://img.shields.io/badge/banco-Supabase-3ECF8E)
 ![Hospedagem](https://img.shields.io/badge/hospedagem-Vercel-black)
 ![PWA](https://img.shields.io/badge/PWA-instal%C3%A1vel-5A0FC8)
-![Versão](https://img.shields.io/badge/painel-1.6-success)
+![Versão](https://img.shields.io/badge/painel-1.8-success)
 ![Licença](https://img.shields.io/badge/licen%C3%A7a-MIT-lightgrey)
 
 > Este painel é o par do firmware **WeatherStation ESP8266** (veja o README do firmware): o ESP envia 20 campos a cada 15 min e este projeto os recebe, guarda e exibe.
@@ -116,7 +116,10 @@ O navegador e o ESP nunca falam direto com o banco: todo acesso passa pela API, 
 | **`/painel`** | logado | Tudo da página pública, mais **Wi-Fi**, **bateria** e **alimentação**, aviso de sensor com defeito, **exportar CSV** e o bloco **Dispositivo** com o diagnóstico completo |
 | **`/devices`** | logado | Lista os ESPs com nome e descrição editáveis, status, cidade, IP (link para admin) e bateria. **Admin**: cadastrar, excluir e marcar como público |
 | **`/users`** | admin | Criar usuários, mudar tipo, chave do OpenWeatherMap (mascarada), senha e **ESPs liberados** de cada usuário normal |
-| **`/account`** | logado | Chave do OpenWeatherMap, troca de senha, **ativar notificações neste aparelho** e **alertas por ESP** |
+| **`/account`** | logado | Chave do OpenWeatherMap e troca de senha. No celular, também Usuários, Página pública, tema, instalar app e Sair |
+| **`/alerts`** | logado | **Ativar notificações neste aparelho**, enviar teste e **alertas por ESP** |
+
+**Navegação:** no computador e no tablet, uma **barra lateral** com ícones (Painel, Dispositivos e Alertas; Minha conta, Usuários e Página pública), o usuário logado, tema, instalar app e Sair. No celular (até 820 px), ela vira uma **barra de abas embaixo** (Painel, ESPs, Alertas e Conta). O visual segue a página de configurações do ESP: títulos grandes, cartões em linhas e chaves liga/desliga.
 
 **Cartões do sensor:** a bateria fica verde acima de 40%, amarela até 40% e vermelha até 15% (com aviso de bateria baixa, que não aparece com energia externa). O Wi-Fi em % vem de `2 × (rssi + 100)`, limitado de 0 a 100.
 
@@ -133,7 +136,7 @@ O navegador e o ESP nunca falam direto com o banco: todo acesso passa pela API, 
 | Validação da API do ESP | **Zod** |
 | Notificações | **web-push** (VAPID) e Service Worker |
 | Clima | API do **OpenWeatherMap** (`weather` e `forecast`) |
-| Visual | Fontes **Space Grotesk** e **JetBrains Mono** (`next/font`), tema por variáveis CSS |
+| Visual | Fonte do sistema (a mesma da `/config` do ESP), barra lateral no computador e abas embaixo no celular, tema claro e escuro por variáveis CSS |
 | Hospedagem | **Vercel** |
 
 ---
@@ -147,7 +150,7 @@ O navegador e o ESP nunca falam direto com o banco: todo acesso passa pela API, 
 | Situação | O que rodar |
 |---|---|
 | **Banco novo** | `schema.sql` |
-| **Banco de uma versão anterior** | `migration.sql`, `migration-v2.sql`, `migration-v3.sql` e `migration-v4.sql`, nessa ordem, pulando os que já rodou (todos mantêm os dados) |
+| **Banco de uma versão anterior** | `migration.sql`, `migration-v2.sql`, `migration-v3.sql`, `migration-v4.sql` e `migration-v5.sql`, nessa ordem, pulando os que já rodou (todos mantêm os dados) |
 
 3. Em **Project Settings → API**, copie a **URL do projeto**. Em **API Keys**, copie a chave secreta (`sb_secret_...`) ou, na aba *Legacy API Keys*, a `service_role`.
 
@@ -193,7 +196,7 @@ npm run dev                  # http://localhost:3000
 3. Configure o ESP (`device_id`, URL `https://SEU-APP.vercel.app/api/readings` e `DEVICE_KEY`). No primeiro envio ele aparece sozinho em **Dispositivos**.
 4. Em **Dispositivos**, dê um nome e uma descrição ao ESP. Para mostrá-lo na página pública, marque **Mostrar na página pública** e clique em **Salvar**.
 5. Em **Usuários**, crie os demais usuários e marque os ESPs de cada um.
-6. Em **Minha conta**, toque em **Ativar notificações neste aparelho**, use **Enviar teste** e defina os alertas de cada ESP.
+6. Em **Alertas**, toque em **Ativar notificações neste aparelho**, use **Enviar teste** e defina os alertas de cada ESP.
 
 > 💡 Para o tempo da cidade aparecer, o ESP precisa enviar `city_id` pelo menos uma vez.
 
@@ -224,7 +227,7 @@ npm run dev                  # http://localhost:3000
 
 ## 🔔 Notificações e alertas
 
-Cada usuário configura, **para cada ESP**, em **Minha conta → Alertas por ESP**:
+Cada usuário configura, **para cada ESP**, em **Alertas → Alertas por ESP**:
 
 | Campo | O que faz |
 |---|---|
@@ -245,7 +248,7 @@ Cada usuário configura, **para cada ESP**, em **Minha conta → Alertas por ESP
 - Só recebe quem ainda tem acesso ao ESP (admin ou liberado).
 - Aparelhos que não existem mais (o serviço de push responde 404 ou 410) são removidos da lista automaticamente.
 
-**Ativar no aparelho:** em **Minha conta**, toque em **Ativar notificações neste aparelho** (cada celular ou navegador ativa uma vez) e use **Enviar teste**.
+**Ativar no aparelho:** em **Alertas**, toque em **Ativar notificações neste aparelho** (cada celular ou navegador ativa uma vez) e use **Enviar teste**.
 
 > ⚠️ **iPhone:** só funciona com o app instalado pela Tela de Início (iOS 16.4 ou mais novo). **Android:** economia de bateria agressiva pode atrasar os avisos do navegador.
 
@@ -253,7 +256,7 @@ Cada usuário configura, **para cada ESP**, em **Minha conta → Alertas por ESP
 
 ## 📲 App instalável (PWA)
 
-- Botão **Instalar app** no topo, quando o navegador permite (Chrome e Edge). No iPhone: **Compartilhar → Adicionar à Tela de Início**.
+- Botão **Instalar app** na barra lateral (no celular, em Minha conta), quando o navegador permite (Chrome e Edge). No iPhone: **Compartilhar → Adicionar à Tela de Início**.
 - Ícone próprio, abre em tela cheia, cor da barra acompanha o tema.
 - Sem internet, mostra uma página de aviso com botão para tentar de novo.
 - Os **dados nunca ficam em cache**: o Service Worker só trata a navegação, para não exibir leituras antigas como se fossem atuais.
@@ -301,6 +304,10 @@ O ESP envia uma leitura por `POST` a cada 15 min (e ao clicar em **Enviar dados 
 | 18 | `send_interval_s` | inteiro | não | não | > 0 | define quando o ESP vira offline |
 | 19 | `display_on` | booleano | não | não | | tela do OLED acesa |
 | 20 | `rssi_pct` | inteiro | não | não | 0 a 100 | aceito e ignorado (o painel calcula pelo `rssi`) |
+| 21 | `lat` | número | não | **sim** | -90 a 90 | latitude da cidade (firmware 3.3+) |
+| 22 | `lon` | número | não | **sim** | -180 a 180 | longitude da cidade (firmware 3.3+) |
+
+**Cidade por coordenadas (firmware 3.3+, `migration-v5.sql`):** com `lat` e `lon`, o painel consulta o clima e a previsão por latitude/longitude (a consulta por ID é obsoleta na OpenWeatherMap). Se o ESP não mandar `city_id` (cidade escolhida pela busca ou só por coordenadas), a cidade é identificada por um **código interno negativo** calculado das coordenadas (arredondadas a ~1 km), e o seletor de cidade, o histórico e o tempo funcionam do mesmo jeito. Sem o `migration-v5.sql`, as leituras continuam sendo aceitas, mas o tempo das cidades sem ID não aparece.
 
 Só os campos **1 a 3** são obrigatórios; os demais são opcionais, então um ESP com firmware antigo continua sendo aceito. Campos desconhecidos são ignorados. O horário da leitura é o da **chegada no servidor** (`created_at`).
 
@@ -317,7 +324,7 @@ Só os campos **1 a 3** são obrigatórios; os demais são opcionais, então um 
 curl -X POST "https://SEU-APP.vercel.app/api/readings" \
   -H "Content-Type: application/json" \
   -H "x-device-key: SUA_DEVICE_KEY" \
-  -d '{"device_id":"esp8266-sala","temperature":24.5,"humidity":61.3,"city_id":3463011,"city_name":"Franca","ip":"192.168.0.50","rssi":-62,"firmware":"2.9","battery_active":true,"battery":83,"battery_voltage":4.02,"external_power":false,"sensor_ok":true,"uptime_s":86400,"reset_reason":"Power on","free_heap":24120,"chip_id":"A1B2C3","send_interval_s":900,"display_on":true,"rssi_pct":76}'
+  -d '{"device_id":"esp8266-sala","temperature":24.5,"humidity":61.3,"city_id":3463011,"city_name":"Franca","ip":"192.168.0.50","rssi":-62,"firmware":"2.9","battery_active":true,"battery":83,"battery_voltage":4.02,"external_power":false,"sensor_ok":true,"uptime_s":86400,"reset_reason":"Power on","free_heap":24120,"chip_id":"A1B2C3","send_interval_s":900,"display_on":true,"rssi_pct":76,"lat":-23.5475,"lon":-46.6361}'
 ```
 
 > O `uptime_s` volta a zero a cada cerca de 49 dias. Se isso coincidir com um último reinício registrado como exceção ou watchdog, o painel pode avisar um reinício inesperado que não existiu (raro).
@@ -428,7 +435,7 @@ As tabelas têm **RLS ligado e nenhuma policy**: só a API, com a chave de servi
 | **"Tempo na cidade" indisponível** | Chave do OpenWeatherMap não cadastrada, recusada ou nova demais (até ~2 h para ativar). Se o `/painel` mostra o tempo mas a página pública não, defina `OWM_PUBLIC_KEY` ou cadastre a chave no usuário principal |
 | **Tempo da cidade não aparece** | O ESP ainda não enviou `city_id` |
 | **Página pública vazia** | Nenhum ESP marcado como público em **Dispositivos** |
-| **Não chegam notificações** | Confira as variáveis `VAPID_*` e o `migration-v3.sql`, use **Enviar teste** em Minha conta e, no Android, desative a economia de bateria agressiva para o navegador |
+| **Não chegam notificações** | Confira as variáveis `VAPID_*` e o `migration-v3.sql`, use **Enviar teste** em Alertas e, no Android, desative a economia de bateria agressiva para o navegador |
 | **Ativar notificações não funciona no iPhone** | Instale o app pela Tela de Início e abra por ele (iOS 16.4 ou mais novo) |
 | **Limites de alerta "não gravam"** | Use vírgula ou ponto; a mensagem de resultado aparece ao lado do botão Salvar do ESP; confira se o `migration-v3.sql` e o `migration-v4.sql` foram executados |
 | **Botão "Instalar app" não aparece** | O navegador só oferece em HTTPS e quando o app ainda não está instalado; no iPhone use *Adicionar à Tela de Início* |
@@ -445,7 +452,8 @@ weatherstation-web/
 │   ├── painel/page.tsx           # painel com login
 │   ├── devices/page.tsx          # dispositivos
 │   ├── users/page.tsx            # usuários e acesso (admin)
-│   ├── account/page.tsx          # minha conta, notificações e alertas
+│   ├── account/page.tsx          # minha conta (chave da OpenWeatherMap e senha)
+│   ├── alerts/page.tsx           # notificações e alertas por ESP
 │   ├── login/page.tsx            # login
 │   ├── manifest.ts               # manifesto do PWA
 │   ├── layout.tsx, globals.css   # layout, fontes, tema
@@ -470,6 +478,7 @@ weatherstation-web/
 ├── migration-v2.sql              # página pública (is_public)
 ├── migration-v3.sql              # notificações push e alertas
 ├── migration-v4.sql              # diagnóstico do ESP e eventos de alerta
+├── migration-v5.sql              # coordenadas da cidade (lat/lon)
 ├── .env.example
 └── README.md
 ```
@@ -487,6 +496,9 @@ weatherstation-web/
 | **1.4** | **Notificações push** com alertas de temperatura, umidade e bateria **por ESP** |
 | **1.5** | Atalho do IP para a página do ESP (admins), chaves mascaradas e mensagens de resultado ao lado dos botões |
 | **1.6** | API com **20 campos** (diagnóstico do ESP), eventos de alerta (energia, sensor e reinício), validação com Zod e este README |
+| **1.8** | **Novo visual no estilo da `/config` do ESP**: barra lateral com ícones (no celular, abas embaixo), títulos grandes, cartões em linhas (rótulo e valor), chaves liga/desliga e fonte do sistema; página **Alertas** separada de Minha conta |
+| **1.8.1** | Bloco **Dispositivo** dividido em três cartões (Identificação, Estado e Funcionamento) e alertas por ESP em listas, com o campo e a unidade à direita e as chaves alinhadas |
+| **1.7** | API com **22 campos** (`lat` e `lon`, firmware 3.3+): clima e previsão consultados **por coordenadas** e cidades **sem `city_id`** aceitas (código interno pelas coordenadas); `migration-v5.sql` |
 
 ---
 
@@ -508,7 +520,7 @@ weatherstation-web/
 - Dados meteorológicos e ícones do tempo: [OpenWeatherMap](https://openweathermap.org/).
 - Banco: [Supabase](https://supabase.com/). Hospedagem: [Vercel](https://vercel.com/).
 - Bibliotecas: [Next.js](https://nextjs.org/), [React](https://react.dev/), [Recharts](https://recharts.org/), [jose](https://github.com/panva/jose), [web-push](https://github.com/web-push-libs/web-push) e [Zod](https://zod.dev/).
-- Fontes: Space Grotesk e JetBrains Mono (Google Fonts).
+- Fonte: a do sistema (sem fontes externas).
 - Firmware: **WeatherStation ESP8266**, que é o par deste painel.
 
 Este projeto é distribuído sob a **licença MIT**. Inclua um arquivo `LICENSE` na raiz do repositório.

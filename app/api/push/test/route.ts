@@ -9,7 +9,7 @@ export async function POST() {
   if (!u) return unauthorized();
   if (!pushEnabled()) return NextResponse.json({ error: 'push_not_configured' }, { status: 503 });
   const sent = await sendToUser(u.id, {
-    title: 'Notificação de teste', body: 'As notificações estão funcionando neste aparelho.', url: '/account',
+    title: 'Notificação de teste', body: 'As notificações estão funcionando neste aparelho.', url: '/alerts',
   });
   return NextResponse.json({ sent });
 }

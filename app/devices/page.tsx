@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import TopBar from '@/components/TopBar';
+import AppNav from '@/components/AppNav';
 import Battery from '@/components/Battery';
 import StatusMsg, { Status, errorText } from '@/components/StatusMsg';
 import IpLink from '@/components/IpLink';
@@ -51,7 +51,8 @@ export default function Devices() {
 
   return (
     <main>
-      <TopBar />
+      <AppNav />
+      <h1 className="page">Dispositivos</h1>
       {isAdmin && (
         <>
           <h2>Cadastrar ESP</h2>
@@ -80,11 +81,11 @@ export default function Devices() {
           <div className="meta">
             <span className="mono">ID: {d.id}</span>
             {d.ip && <span className="mono">IP: <IpLink ip={d.ip} isAdmin={isAdmin} /></span>}
-            {d.city_id && <span>Cidade: {d.city_name ? `${d.city_name} (${d.city_id})` : d.city_id}</span>}
+            {d.city_id != null && <span>Cidade: {d.city_name ?? (d.city_id > 0 ? d.city_id : 'por coordenadas')}</span>}
             <span><span className={`dot ${isOnline(d.last_seen, d.send_interval_s) ? 'on' : ''}`} />{isOnline(d.last_seen, d.send_interval_s) ? 'Online' : 'Offline'}, visto {timeAgo(d.last_seen)}</span>
             {isAdmin && (
-              <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="checkbox" checked={!!d.is_public}
+              <label className="sw-row">
+                <input type="checkbox" className="sw" checked={!!d.is_public}
                   onChange={e => setList(l => l.map(x => (x.id === d.id ? { ...x, is_public: e.target.checked } : x)))} />
                 Mostrar na página pública (clique em Salvar)
               </label>

@@ -1,17 +1,21 @@
+import type { Loc } from './city';
+
 const BASE = 'https://api.openweathermap.org/data/2.5';
 const FORECAST_DAYS = 4; // quantos dias à frente mostrar (a API gratuita cobre até 5)
 
 type Res = { status: number; body: unknown };
 
-async function call(path: string, city: number, key: string) {
+// Por latitude/longitude quando o ESP as enviou (a consulta por ID é obsoleta na OpenWeatherMap); senão, pelo ID
+async function call(path: string, loc: Loc, key: string) {
+  const where = 'id' in loc ? `id=${loc.id}` : `lat=${loc.lat.toFixed(4)}&lon=${loc.lon.toFixed(4)}`;
   // Cache de 5 min no servidor: protege a cota da OpenWeatherMap, principalmente na página pública
-  return fetch(`${BASE}/${path}?id=${city}&units=metric&lang=pt_br&appid=${encodeURIComponent(key)}`, { next: { revalidate: 300 } });
+  return fetch(`${BASE}/${path}?${where}&units=metric&lang=pt_br&appid=${encodeURIComponent(key)}`, { next: { revalidate: 300 } });
 }
 const fail = (r: Response): Res =>
   r.status === 401 ? { status: 400, body: { error: 'invalid_key' } } : { status: 502, body: { error: 'owm_error' } };
 
-export async function getWeather(city: number, key: string): Promise<Res> {
-  const r = await call('weather', city, key);
+export async function getWeather(loc: Loc, key: string): Promise<Res> {
+  const r = await call('weather', loc, key);
   if (!r.ok) return fail(r);
   const w = await r.json();
   return {
@@ -26,8 +30,8 @@ export async function getWeather(city: number, key: string): Promise<Res> {
 }
 
 // Previsão: junta os blocos de 3 em 3 horas da OpenWeatherMap em um resumo por dia
-export async function getForecast(city: number, key: string): Promise<Res> {
-  const r = await call('forecast', city, key);
+export async function getForecast(loc: Loc, key: string): Promise<Res> {
+  const r = await call('forecast', loc, key);
   if (!r.ok) return fail(r);
   const f = await r.json();
   const tz: number = f.city?.timezone ?? 0;

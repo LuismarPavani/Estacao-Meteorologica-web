@@ -6,6 +6,7 @@ export type Device = {
   city_id: number | null; city_name: string | null; is_public?: boolean;
   external_power?: boolean | null; sensor_ok?: boolean | null; uptime_s?: number | null; reset_reason?: string | null;
   free_heap?: number | null; chip_id?: string | null; send_interval_s?: number | null; display_on?: boolean | null;
+  lat?: number | null; lon?: number | null; // coordenadas da cidade (firmware 3.3+, migration-v5.sql)
 };
 
 export const wifiPct = (rssi: number) => Math.max(0, Math.min(100, 2 * (rssi + 100)));

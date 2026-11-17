@@ -142,17 +142,29 @@ export default function Notifications() {
     finally { setSaving(null); }
   }
 
-  const num = (id: string, f: Field, label: string, f0: Form) => (
-    <label>{label}
-      <input type="text" inputMode="decimal" autoComplete="off" value={f0[f]} placeholder="sem limite"
-        onChange={e => edit(id, { [f]: e.target.value } as Partial<Form>)} />
+  // Linha da lista: nome à esquerda, campo com a unidade à direita
+  const num = (id: string, f: Field, label: string, unit: string, f0: Form) => (
+    <label className="li">
+      <span className="k">{label}</span>
+      <span className="num-in">
+        <input type="text" inputMode="decimal" autoComplete="off" value={f0[f]} placeholder="sem limite" aria-label={label}
+          onChange={e => edit(id, { [f]: e.target.value } as Partial<Form>)} />
+        <span className="u">{unit}</span>
+      </span>
+    </label>
+  );
+  type Flag = 'notify_recovery' | 'notify_power' | 'notify_sensor' | 'notify_restart';
+  const flag = (id: string, k: Flag, label: string, f0: Form) => (
+    <label className="li">
+      <span className="k">{label}</span>
+      <input type="checkbox" className="sw" checked={f0[k]} onChange={e => edit(id, { [k]: e.target.checked } as Partial<Form>)} />
     </label>
   );
 
   return (
     <>
-      <h2>Notificações</h2>
-      <div className="form" style={{ maxWidth: 560 }}>
+      <h2>Notificações neste aparelho</h2>
+      <div className="form panel" style={{ maxWidth: 560 }}>
         {support === 'unsupported' && <p className="muted small" style={{ margin: 0 }}>Este navegador não suporta notificações push.</p>}
         {support === 'ios' && <p className="muted small" style={{ margin: 0 }}>No iPhone, instale o app antes: toque em Compartilhar e em <b>Adicionar à Tela de Início</b>, abra o app instalado e volte aqui. É necessário iOS 16.4 ou mais novo.</p>}
         {support === 'ok' && (
@@ -179,31 +191,36 @@ export default function Notifications() {
       {devices.map(d => {
         const f = forms[d.id] ?? toForm();
         return (
-          <div className="row wide" key={d.id}>
-            <div><b>{d.name || d.id}</b><div className="muted small">{rules[d.id] ? (rules[d.id].enabled ? 'Alerta ativo' : 'Alerta pausado') : 'Sem alerta'}</div></div>
-            {num(d.id, 'temp_min', 'Temperatura mínima (°C)', f)}
-            {num(d.id, 'temp_max', 'Temperatura máxima (°C)', f)}
-            {num(d.id, 'hum_min', 'Umidade mínima (%)', f)}
-            {num(d.id, 'hum_max', 'Umidade máxima (%)', f)}
-            {num(d.id, 'battery_min', 'Avisar bateria em (%)', f)}
-            <div className="meta" style={{ display: 'flex' }}>
-              <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="checkbox" checked={f.enabled} onChange={e => edit(d.id, { enabled: e.target.checked })} /> Alertas ligados
-              </label>
-              <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="checkbox" checked={f.notify_recovery} onChange={e => edit(d.id, { notify_recovery: e.target.checked })} /> Avisar quando voltar ao normal
-              </label>
-              <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="checkbox" checked={f.notify_power} onChange={e => edit(d.id, { notify_power: e.target.checked })} /> Queda de energia
-              </label>
-              <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="checkbox" checked={f.notify_sensor} onChange={e => edit(d.id, { notify_sensor: e.target.checked })} /> Falha do sensor
-              </label>
-              <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="checkbox" checked={f.notify_restart} onChange={e => edit(d.id, { notify_restart: e.target.checked })} /> Reinício inesperado
+          <div className="panel alert-card" key={d.id}>
+            <div className="alert-head">
+              <div><b>{d.name || d.id}</b><div className="muted small">{rules[d.id] ? (rules[d.id].enabled ? 'Alerta ativo' : 'Alerta pausado') : 'Sem alerta'}</div></div>
+              <label className="sw-row">
+                Alertas ligados
+                <input type="checkbox" className="sw" checked={f.enabled} onChange={e => edit(d.id, { enabled: e.target.checked })} />
               </label>
             </div>
-            <div className="actions" style={{ gridColumn: '1 / -1' }}>
+            <div className="groups">
+              <div>
+                <div className="grp-t">Limites</div>
+                <div className="grp">
+                  {num(d.id, 'temp_min', 'Temperatura mínima', '°C', f)}
+                  {num(d.id, 'temp_max', 'Temperatura máxima', '°C', f)}
+                  {num(d.id, 'hum_min', 'Umidade mínima', '%', f)}
+                  {num(d.id, 'hum_max', 'Umidade máxima', '%', f)}
+                  {num(d.id, 'battery_min', 'Bateria abaixo de', '%', f)}
+                </div>
+              </div>
+              <div>
+                <div className="grp-t">Avisar também</div>
+                <div className="grp">
+                  {flag(d.id, 'notify_recovery', 'Quando voltar ao normal', f)}
+                  {flag(d.id, 'notify_power', 'Queda de energia', f)}
+                  {flag(d.id, 'notify_sensor', 'Falha do sensor', f)}
+                  {flag(d.id, 'notify_restart', 'Reinício inesperado', f)}
+                </div>
+              </div>
+            </div>
+            <div className="actions">
               <button className="btn" disabled={saving === d.id} onClick={() => save(d.id)}>{saving === d.id ? 'Salvando…' : 'Salvar'}</button>
               {rules[d.id] && <button className="btn danger" disabled={saving === d.id} onClick={() => remove(d.id)}>Remover</button>}
               <StatusMsg s={status[d.id]} />

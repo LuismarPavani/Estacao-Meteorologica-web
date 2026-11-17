@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse, after } from 'next/server';
 import { AlertEvent, checkAlerts } from '@/lib/alerts';
+import { coordKey } from '@/lib/city';
 import { readingSchema } from '@/lib/readingSchema';
 import { fetchReadings } from '@/lib/readings';
 import { canAccessDevice, forbidden, getUser, unauthorized } from '@/lib/session';
@@ -8,6 +9,10 @@ import { supabase } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 
 const ABNORMAL_RESET = /exception|watchdog/i;
+
+// Erro de coluna inexistente (lat/lon antes do migration-v5.sql): PostgREST devolve PGRST204, o Postgres 42703
+const semColuna = (e: { code?: string; message?: string }) =>
+  e.code === 'PGRST204' || e.code === '42703' || /column/i.test(e.message ?? '');
 
 // ESP8266 envia a leitura (autenticado por x-device-key)
 export async function POST(req: NextRequest) {
@@ -22,8 +27,11 @@ export async function POST(req: NextRequest) {
     }, { status: 400 });
   const b = parsed.data;
   const id = b.device_id;
-  const cityId = b.city_id ?? null;
   const cityName = b.city_name?.trim().slice(0, 80) || null;
+  // Coordenadas (firmware 3.3+). Sem city_id, a cidade é identificada por um código interno das coordenadas.
+  const hasCoord = b.lat != null && b.lon != null;
+  const coords = hasCoord ? { lat: b.lat!, lon: b.lon! } : {};
+  const cityId = b.city_id ?? (hasCoord ? coordKey(b.lat!, b.lon!) : null);
   const sensorOk = b.sensor_ok !== false; // campo ausente = ok
 
   // Estado anterior do ESP: serve para detectar eventos (queda de energia, sensor, reinício)
@@ -45,11 +53,15 @@ export async function POST(req: NextRequest) {
     ...(cityId ? { city_id: cityId, city_name: cityName } : {}),
   };
 
-  // Atualiza o ESP; se o ID ainda não existe, cadastra automaticamente (sem dono, nome e descrição em branco)
-  const { data: dev, error: e1 } = await supabase.from('devices').update(fields).eq('id', id).select('id');
+  // Atualiza o ESP; se o ID ainda não existe, cadastra automaticamente (sem dono, nome e descrição em branco).
+  // Com as coordenadas; se o banco ainda não tem as colunas (migration-v5.sql não rodou), grava sem elas.
+  let comCoord = hasCoord;
+  const upd = async () => supabase.from('devices').update({ ...fields, ...(comCoord ? coords : {}) }).eq('id', id).select('id');
+  let { data: dev, error: e1 } = await upd();
+  if (e1 && comCoord && semColuna(e1)) { comCoord = false; ({ data: dev, error: e1 } = await upd()); }
   if (e1) return NextResponse.json({ error: 'db error' }, { status: 500 });
   if (!dev?.length) {
-    const { error: e3 } = await supabase.from('devices').insert({ id, name: '', description: null, ...fields });
+    const { error: e3 } = await supabase.from('devices').insert({ id, name: '', description: null, ...fields, ...(comCoord ? coords : {}) });
     if (e3) return NextResponse.json({ error: 'db error' }, { status: 500 });
   }
 
@@ -86,7 +98,7 @@ export async function POST(req: NextRequest) {
 
   if (cityId)
     await supabase.from('device_cities').upsert(
-      { device_id: id, city_id: cityId, city_name: cityName, last_seen: now },
+      { device_id: id, city_id: cityId, city_name: cityName, last_seen: now, ...(comCoord ? coords : {}) },
       { onConflict: 'device_id,city_id' });
   return NextResponse.json({ ok: true });
 }

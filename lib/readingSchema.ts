@@ -28,5 +28,8 @@ export const readingSchema = z.object({
   send_interval_s: z.number().int().positive().optional(),
   display_on: z.boolean().optional(),
   rssi_pct: z.number().int().min(0).max(100).optional(), // aceito, mas ignorado: o painel calcula pelo rssi
+  // firmware 3.3+: coordenadas da cidade (null até o ESP conhecê-las)
+  lat: z.number().min(-90).max(90).nullable().optional(),
+  lon: z.number().min(-180).max(180).nullable().optional(),
 });
 export type ReadingBody = z.infer<typeof readingSchema>;
