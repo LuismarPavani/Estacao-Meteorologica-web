@@ -496,9 +496,9 @@ weatherstation-web/
 | **1.4** | **Notificações push** com alertas de temperatura, umidade e bateria **por ESP** |
 | **1.5** | Atalho do IP para a página do ESP (admins), chaves mascaradas e mensagens de resultado ao lado dos botões |
 | **1.6** | API com **20 campos** (diagnóstico do ESP), eventos de alerta (energia, sensor e reinício), validação com Zod e este README |
+| **1.7** | API com **22 campos** (`lat` e `lon`, firmware 3.3+): clima e previsão consultados **por coordenadas** e cidades **sem `city_id`** aceitas (código interno pelas coordenadas); `migration-v5.sql` |
 | **1.8** | **Novo visual no estilo da `/config` do ESP**: barra lateral com ícones (no celular, abas embaixo), títulos grandes, cartões em linhas (rótulo e valor), chaves liga/desliga e fonte do sistema; página **Alertas** separada de Minha conta |
 | **1.8.1** | Bloco **Dispositivo** dividido em três cartões (Identificação, Estado e Funcionamento) e alertas por ESP em listas, com o campo e a unidade à direita e as chaves alinhadas |
-| **1.7** | API com **22 campos** (`lat` e `lon`, firmware 3.3+): clima e previsão consultados **por coordenadas** e cidades **sem `city_id`** aceitas (código interno pelas coordenadas); `migration-v5.sql` |
 
 ---
 
