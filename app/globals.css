@@ -174,7 +174,7 @@ main:has(> .side){max-width:calc(1040px + var(--side));margin:0;padding:24px 28p
 @media(max-width:820px){
   .side{display:none}
   main:has(> .side){padding:18px 16px calc(84px + env(safe-area-inset-bottom))}
-  .tabs{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;
+  .tabs{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;
     padding:6px 4px calc(6px + env(safe-area-inset-bottom));border-top:1px solid var(--line);
     background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px)}
   .tabs a{display:grid;justify-items:center;gap:2px;padding:4px 0;font-size:.7rem;color:var(--muted);text-decoration:none}
@@ -220,3 +220,51 @@ input.sw:checked{background:var(--ok)}input.sw:checked::after{left:21px}
 /* Botões no estilo da /config do ESP */
 button.btn{border-radius:12px;padding:10px 18px}
 h2{margin:28px 6px 8px}
+
+/* Sol e Lua (cartão do painel) */
+.lua-card{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.lua-svg{width:112px;height:112px;flex:none}
+.lua-sombra{fill:#1b2740}
+[data-theme="light"] .lua-sombra{fill:#c9d4e3}
+.lua-luz{fill:#f4f1e4}
+[data-theme="light"] .lua-luz{fill:#fffbea}
+.lua-borda{fill:none;stroke:var(--line);stroke-width:1.5}
+.lua-info{flex:1;min-width:220px}
+.lua-nome{font-size:1.45rem;font-weight:600;letter-spacing:-.01em;margin:2px 0}
+.lua-dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 18px;margin:12px 0 0}
+.lua-dl dt{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lua-dl dd{margin:0;font-variant-numeric:tabular-nums}
+
+/* Mapa */
+.mapa{position:relative;z-index:0;height:calc(100vh - 250px);min-height:380px;border-radius:14px;overflow:hidden;
+  border:1px solid var(--line);box-shadow:var(--shadow);background:var(--panel2)}
+.seg-wrap{flex-wrap:wrap;border-radius:18px}
+.radar-ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.radar-ctl input[type=range]{width:160px;accent-color:var(--accent)}
+.legenda{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;margin-top:10px;max-width:520px}
+.legenda-barra{height:10px;border-radius:999px;border:1px solid var(--line)}
+.legenda-num{grid-column:2;display:flex;justify-content:space-between}
+.map-pin{background:none;border:0}
+.map-pin span{position:absolute;transform:translate(-50%,calc(-100% - 8px));white-space:nowrap;background:var(--accent);color:#04121f;
+  font-weight:700;font-size:.85rem;padding:4px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.map-pin span::after{content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+  border:6px solid transparent;border-top-color:var(--accent);border-bottom:0}
+[data-theme="light"] .map-pin span{color:#fff}
+.leaflet-container{font:inherit}
+/* Mapa base escuro: inverte o OpenStreetMap e devolve os tons (água azul, parques verdes) */
+:root:not([data-theme="light"]) .mapa-base{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.9) saturate(.6)}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
+.leaflet-popup-content{line-height:1.5;margin:12px 14px}
+/* Balão do ESP no mapa */
+.pop{min-width:170px}
+.pop-t{font-weight:700;font-size:1rem}
+.pop-sub{color:var(--muted);font-size:.82rem}
+.pop-val{display:flex;gap:14px;font-size:1.25rem;font-weight:600;margin:6px 0 4px;font-variant-numeric:tabular-nums}
+.pop-li{display:flex;align-items:center;gap:8px;padding:3px 0;font-variant-numeric:tabular-nums}
+.pop-li small,.pop-foot{color:var(--muted);font-size:.78rem}
+.pop-ic{flex:none;width:26px;color:var(--ink)}
+.pop-foot{display:flex;align-items:center;gap:6px;margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}
+.leaflet-container .leaflet-control-attribution{background:color-mix(in srgb,var(--panel) 80%,transparent);color:var(--muted)}
+.leaflet-container .leaflet-control-attribution a{color:var(--accent)}
+.leaflet-bar a,.leaflet-bar a:hover{background:var(--panel);color:var(--ink);border-bottom-color:var(--line)}
+@media(max-width:820px){.mapa{height:calc(100vh - 300px)}}

@@ -7,6 +7,7 @@ import AppNav from '@/components/AppNav';
 import PublicBar from '@/components/PublicBar';
 import Battery from '@/components/Battery';
 import IpLink from '@/components/IpLink';
+import SolLua from '@/components/SolLua';
 import { Device, comfortLabel, dewPoint, formatUptime, heatIndex, isOnline, resetInfo, timeAgo, wifiPct } from '@/lib/format';
 
 type Reading = { created_at: string; temperature: number; humidity: number };
@@ -232,6 +233,9 @@ export default function Dashboard({ mode }: { mode: 'private' | 'public' }) {
               </section>
             </>
           )}
+
+          <h2>Sol e Lua{cityName ? ` em ${cityName}` : ''}</h2>
+          <SolLua lat={dev.lat} lon={dev.lon} sunrise={w?.sunrise} sunset={w?.sunset} timezone={w?.timezone} />
 
           <h2>Sensor do ESP</h2>
           {!pub && dev.sensor_ok === false && (

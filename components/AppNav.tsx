@@ -11,6 +11,7 @@ type Item = { href: string; label: string; curto: string; icone: string; cor: st
 
 const ESTACOES: Item[] = [
   { href: '/painel', label: 'Painel', curto: 'Painel', icone: '📈', cor: '#4fc3f7' },
+  { href: '/mapa', label: 'Mapa', curto: 'Mapa', icone: '🗺️', cor: '#4db6ac' },
   { href: '/devices', label: 'Dispositivos', curto: 'ESPs', icone: '📡', cor: '#ce93d8' },
   { href: '/alerts', label: 'Alertas', curto: 'Alertas', icone: '🔔', cor: '#ffb74d' },
 ];
@@ -19,8 +20,8 @@ const CONTA: Item[] = [
   { href: '/users', label: 'Usuários', curto: 'Usuários', icone: '👥', cor: '#9fa8da', admin: true },
   { href: '/', label: 'Página pública', curto: 'Pública', icone: '🌐', cor: '#78909c' },
 ];
-// Abas do celular: as 4 principais (Usuários, Página pública, tema e Sair ficam em Minha conta)
-const ABAS = [ESTACOES[0], ESTACOES[1], ESTACOES[2], CONTA[0]];
+// Abas do celular: as 5 principais (Usuários, Página pública, tema e Sair ficam em Minha conta)
+const ABAS = [ESTACOES[0], ESTACOES[1], ESTACOES[2], ESTACOES[3], CONTA[0]];
 
 export type Me = { username: string; role: string };
 

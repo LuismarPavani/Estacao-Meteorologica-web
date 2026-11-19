@@ -5,6 +5,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const isPublic =
     pathname === '/' ||                       // página pública
+    pathname === '/mapa' ||                   // mapa (sem login: só o radar e os ESPs públicos)
     pathname === '/login' ||
     pathname === '/api/login' ||
     pathname.startsWith('/api/public/') ||

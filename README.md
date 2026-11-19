@@ -1,15 +1,15 @@
-# 🌦️ WeatherStation Painel
+# 🌦️ Estação Meteorológica Painel
 
-Painel web para acompanhar uma ou mais estações meteorológicas **ESP8266**: recebe as leituras por uma **API REST**, guarda o histórico no **Supabase**, mostra **gráficos**, o **tempo e a previsão** da cidade (OpenWeatherMap), **diagnóstico do dispositivo**, **página pública**, **usuários com permissões**, **tema claro e escuro**, **app instalável (PWA)** e **notificações push** com alertas por ESP. Feito com **Next.js** e hospedado no **Vercel**.
+Painel web para acompanhar uma ou mais estações meteorológicas **ESP8266**: recebe as leituras por uma **API REST**, guarda o histórico no **Supabase**, mostra **gráficos**, o **tempo e a previsão** da cidade (OpenWeatherMap), **Sol e Lua**, **mapa do tempo** com radar de chuva, **diagnóstico do dispositivo**, **página pública**, **usuários com permissões**, **tema claro e escuro**, **app instalável (PWA)** e **notificações push** com alertas por ESP. Feito com **Next.js** e hospedado no **Vercel**.
 
 ![Next.js](https://img.shields.io/badge/Next.js-15-black)
 ![Banco](https://img.shields.io/badge/banco-Supabase-3ECF8E)
 ![Hospedagem](https://img.shields.io/badge/hospedagem-Vercel-black)
 ![PWA](https://img.shields.io/badge/PWA-instal%C3%A1vel-5A0FC8)
-![Versão](https://img.shields.io/badge/painel-1.8-success)
+![Versão](https://img.shields.io/badge/painel-1.9-success)
 ![Licença](https://img.shields.io/badge/licen%C3%A7a-MIT-lightgrey)
 
-> Este painel é o par do firmware **WeatherStation ESP8266** (veja o README do firmware): o ESP envia 20 campos a cada 15 min e este projeto os recebe, guarda e exibe.
+> Este painel é o par do firmware **Estação Meteorológica ESP8266** (veja o README do firmware): o ESP envia 20 campos a cada 15 min e este projeto os recebe, guarda e exibe.
 
 <!-- Adicione suas capturas de tela em docs/img/ e referencie aqui, por exemplo:
 ![Página pública](docs/img/publica.png)
@@ -58,6 +58,17 @@ Painel web para acompanhar uma ou mais estações meteorológicas **ESP8266**: r
 - **Previsão dos próximos 4 dias**: máxima, mínima, descrição, ícone e chance de chuva.
 - A consulta é feita no servidor com a chave do usuário; a chave nunca vai para o navegador.
 
+**Sol e Lua**
+- Cartão com o **desenho da fase da Lua** (invertido no hemisfério sul), o nome da fase (os mesmos da tela do ESP), a **% iluminada** e se está crescendo ou diminuindo.
+- **Nascer e pôr da Lua e do Sol** e as datas da **próxima Lua cheia e nova**.
+- Calculado no navegador com as coordenadas da cidade (biblioteca **suncalc**), sem gastar a cota do OpenWeatherMap. Sem coordenadas, mostra só a fase.
+
+**Mapa do tempo (`/mapa`)**
+- Mapa do **OpenStreetMap** (no tema escuro, com as cores invertidas) com os ESPs nas coordenadas da cidade e a última temperatura num balão.
+- Ao tocar no ESP: temperatura, umidade e, logado, **sinal Wi-Fi** (barras) e **bateria** (nível, tensão e energia externa), com online ou offline.
+- **Radar de chuva** animado das últimas 2 horas (RainViewer, grátis e sem chave), com controle de horário.
+- Logado: camadas de **temperatura, chuva, nuvens, vento e pressão** da OpenWeatherMap, com legenda. O painel busca os quadrados do mapa no servidor (a chave não vai ao navegador) e guarda 10 min em cache.
+
 **Dispositivos**
 - Cadastro de ESPs pelo ID, com nome e descrição, e **cadastro automático** no primeiro envio (nome e descrição em branco).
 - Status **online/offline** pelo intervalo de envio informado pelo ESP.
@@ -71,6 +82,7 @@ Painel web para acompanhar uma ou mais estações meteorológicas **ESP8266**: r
 - **Usuários** do tipo **admin** (vê tudo) ou **normal** (só os ESPs liberados pelo admin).
 - **Chave do OpenWeatherMap por usuário**, mascarada na interface (`************56f5`).
 - **Usuário principal** (`ADMIN_USER`): sempre admin, com acesso de emergência pela `ADMIN_PASSWORD`.
+- **Limite de tentativas de login**: 5 senhas erradas no mesmo usuário (ou 20 no total) bloqueiam o IP por 15 min.
 
 **Notificações e app**
 - **Notificações push** mesmo com o app fechado: limites de temperatura e umidade e aviso de bateria **por ESP**, mais eventos (queda de energia, falha do sensor, reinício inesperado).
@@ -85,12 +97,13 @@ Painel web para acompanhar uma ou mais estações meteorológicas **ESP8266**: r
 
 ```mermaid
 flowchart LR
-  ESP["ESP8266<br/>WeatherStation"] -->|"POST /api/readings<br/>x-device-key"| API["API Next.js<br/>(Vercel)"]
+  ESP["ESP8266<br/>Estação Meteorológica"] -->|"POST /api/readings<br/>x-device-key"| API["API Next.js<br/>(Vercel)"]
   API --> DB[("Supabase<br/>Postgres")]
-  API -->|"chave do usuário"| OWM["OpenWeatherMap<br/>tempo e previsão"]
+  API -->|"chave do usuário"| OWM["OpenWeatherMap<br/>tempo, previsão e camadas do mapa"]
   API -->|"Web Push"| PUSH["Serviço de push<br/>(Google, Apple, Mozilla)"]
   PUSH --> CEL["Celular ou computador<br/>(PWA)"]
   NAV["Navegador"] -->|"página pública e painel"| API
+  NAV -->|"radar e mapa base"| MAPAS["RainViewer e<br/>OpenStreetMap"]
 ```
 
 O navegador e o ESP nunca falam direto com o banco: todo acesso passa pela API, que guarda as chaves.
@@ -102,6 +115,9 @@ O navegador e o ESP nunca falam direto com o banco: todo acesso passa pela API, 
 | Atualização da lista de dispositivos e do gráfico no painel | a cada 60 s |
 | Tempo agora (OpenWeatherMap) | a cada 10 min (cache de 5 min no servidor) |
 | Previsão (OpenWeatherMap) | a cada 30 min (cache de 5 min no servidor) |
+| Cartão Sol e Lua | a cada 10 min (calculado no navegador) |
+| Radar de chuva no mapa | quadros de 10 em 10 min, lista atualizada a cada 10 min |
+| Camadas da OpenWeatherMap no mapa | cache de 10 min no navegador e na CDN do Vercel |
 | Aviso repetido de limite fora da faixa | a cada 2 h (temperatura e umidade) e 6 h (bateria), enquanto continuar fora |
 | Sessão de login | 7 dias |
 
@@ -111,15 +127,16 @@ O navegador e o ESP nunca falam direto com o banco: todo acesso passa pela API, 
 
 | Página | Acesso | O que tem |
 |---|---|---|
-| **`/`** (pública) | todos | Seletor de dispositivo e cidade, tempo agora, previsão, sensor (temperatura, umidade, sensação térmica e ponto de orvalho) e histórico com estatísticas. Botão **Entrar** (ou **Painel**, se já estiver logado), tema e **Instalar app** |
+| **`/`** (pública) | todos | Seletor de dispositivo e cidade, tempo agora, previsão, **Sol e Lua**, sensor (temperatura, umidade, sensação térmica e ponto de orvalho) e histórico com estatísticas. Botão **Entrar** (ou **Painel**, se já estiver logado), tema e **Instalar app** |
 | **`/login`** | todos | Usuário e senha, com link para voltar à página pública |
 | **`/painel`** | logado | Tudo da página pública, mais **Wi-Fi**, **bateria** e **alimentação**, aviso de sensor com defeito, **exportar CSV** e o bloco **Dispositivo** com o diagnóstico completo |
+| **`/mapa`** | todos | Mapa com os ESPs e o **radar de chuva**. Sem login, só os ESPs públicos (balão com temperatura e umidade). Logado, os ESPs liberados (balão com Wi-Fi e bateria) e as camadas de **temperatura, chuva, nuvens, vento e pressão** |
 | **`/devices`** | logado | Lista os ESPs com nome e descrição editáveis, status, cidade, IP (link para admin) e bateria. **Admin**: cadastrar, excluir e marcar como público |
 | **`/users`** | admin | Criar usuários, mudar tipo, chave do OpenWeatherMap (mascarada), senha e **ESPs liberados** de cada usuário normal |
 | **`/account`** | logado | Chave do OpenWeatherMap e troca de senha. No celular, também Usuários, Página pública, tema, instalar app e Sair |
 | **`/alerts`** | logado | **Ativar notificações neste aparelho**, enviar teste e **alertas por ESP** |
 
-**Navegação:** no computador e no tablet, uma **barra lateral** com ícones (Painel, Dispositivos e Alertas; Minha conta, Usuários e Página pública), o usuário logado, tema, instalar app e Sair. No celular (até 820 px), ela vira uma **barra de abas embaixo** (Painel, ESPs, Alertas e Conta). O visual segue a página de configurações do ESP: títulos grandes, cartões em linhas e chaves liga/desliga.
+**Navegação:** no computador e no tablet, uma **barra lateral** com ícones (Painel, Mapa, Dispositivos e Alertas; Minha conta, Usuários e Página pública), o usuário logado, tema, instalar app e Sair. No celular (até 820 px), ela vira uma **barra de abas embaixo** (Painel, Mapa, ESPs, Alertas e Conta). Na página pública, o topo tem o link **Mapa**. O visual segue a página de configurações do ESP: títulos grandes, cartões em linhas e chaves liga/desliga.
 
 **Cartões do sensor:** a bateria fica verde acima de 40%, amarela até 40% e vermelha até 15% (com aviso de bateria baixa, que não aparece com energia externa). O Wi-Fi em % vem de `2 × (rssi + 100)`, limitado de 0 a 100.
 
@@ -136,6 +153,8 @@ O navegador e o ESP nunca falam direto com o banco: todo acesso passa pela API, 
 | Validação da API do ESP | **Zod** |
 | Notificações | **web-push** (VAPID) e Service Worker |
 | Clima | API do **OpenWeatherMap** (`weather` e `forecast`) |
+| Mapa | **Leaflet**, mapa base do **OpenStreetMap**, radar do **RainViewer** e camadas *Weather maps 1.0* do **OpenWeatherMap** |
+| Sol e Lua | **suncalc** (cálculo no navegador) |
 | Visual | Fonte do sistema (a mesma da `/config` do ESP), barra lateral no computador e abas embaixo no celular, tema claro e escuro por variáveis CSS |
 | Hospedagem | **Vercel** |
 
@@ -150,7 +169,7 @@ O navegador e o ESP nunca falam direto com o banco: todo acesso passa pela API, 
 | Situação | O que rodar |
 |---|---|
 | **Banco novo** | `schema.sql` |
-| **Banco de uma versão anterior** | `migration.sql`, `migration-v2.sql`, `migration-v3.sql`, `migration-v4.sql` e `migration-v5.sql`, nessa ordem, pulando os que já rodou (todos mantêm os dados) |
+| **Banco de uma versão anterior** | `migration.sql`, `migration-v2.sql`, `migration-v3.sql`, `migration-v4.sql`, `migration-v5.sql` e `migration-v6.sql`, nessa ordem, pulando os que já rodou (todos mantêm os dados) |
 
 3. Em **Project Settings → API**, copie a **URL do projeto**. Em **API Keys**, copie a chave secreta (`sb_secret_...`) ou, na aba *Legacy API Keys*, a `service_role`.
 
@@ -339,7 +358,7 @@ curl -X POST "https://SEU-APP.vercel.app/api/readings" \
 |---|---|---|
 | POST | `/api/readings` | Recebe a leitura do ESP (exige `x-device-key`) |
 | POST | `/api/login` | Entra (cria o usuário principal no primeiro login) |
-| GET | `/api/public/devices` | ESPs marcados como públicos (sem IP, firmware, Wi-Fi nem bateria) |
+| GET | `/api/public/devices` | ESPs marcados como públicos, com as coordenadas da cidade (sem IP, firmware, Wi-Fi nem bateria) |
 | GET | `/api/public/cities?device=ID` | Cidades de um ESP público |
 | GET | `/api/public/readings?device=ID&hours=24&city=CODIGO` | Leituras de um ESP público |
 | GET | `/api/public/weather?device=ID&city=CODIGO` | Tempo atual (só cidades já enviadas por um ESP público) |
@@ -357,6 +376,7 @@ curl -X POST "https://SEU-APP.vercel.app/api/readings" \
 | GET | `/api/cities?device=ID` | com acesso ao ESP | Cidades já enviadas pelo ESP |
 | GET | `/api/weather?city=CODIGO` | logado | Tempo atual, com a chave do usuário |
 | GET | `/api/forecast?city=CODIGO` | logado | Previsão dos próximos 4 dias |
+| GET | `/api/mapa/CAMADA/z/x/y` | logado | Quadrado do mapa da OpenWeatherMap (`temp`, `chuva`, `nuvens`, `vento` ou `pressao`), com a chave do usuário ou, sem ela, a da página pública. Cache de 10 min |
 | GET / POST | `/api/users` | admin | Lista e cria usuários |
 | PATCH / DELETE | `/api/users/[id]` | admin | Tipo, chave, senha, ESPs liberados e exclusão |
 | GET / PATCH | `/api/me` | logado | Dados do usuário; troca chave e senha |
@@ -381,6 +401,7 @@ curl -X POST "https://SEU-APP.vercel.app/api/readings" \
 | `push_subscriptions` | Aparelhos registrados para receber notificações |
 | `alert_rules` | Limites e eventos de alerta de cada usuário em cada ESP |
 | `alert_state` | Quais alertas estão ativos e quando foi o último aviso (evita repetição) |
+| `login_failures` | Senhas erradas recentes (usuário digitado, IP e horário), para o limite de tentativas; apagadas depois de 1 dia |
 
 As tabelas têm **RLS ligado e nenhuma policy**: só a API, com a chave de servidor, acessa os dados. O volume é pequeno: com envio a cada 15 min são cerca de 35 mil leituras por ESP por ano.
 
@@ -398,8 +419,13 @@ As tabelas têm **RLS ligado e nenhuma policy**: só a API, com a chave de servi
 | `lib/format.ts` → `wifiPct` | Fórmula do sinal Wi-Fi em % |
 | `lib/readingSchema.ts` | Limites validados em cada campo da API |
 | `app/api/readings/route.ts` → `ABNORMAL_RESET` | Quais motivos de reinício contam como inesperados |
+| `components/Mapa.tsx` → `CAMADAS` | Camadas do mapa, nomes e cores da legenda |
+| `components/Mapa.tsx` → `BRASIL` | Centro do mapa quando nenhum ESP tem coordenadas |
+| `app/api/mapa/.../route.ts` → `max-age` | Cache das camadas da OpenWeatherMap (10 min) |
+| `lib/lua.ts` → `FASES` | Nomes das fases da Lua |
 | `components/Dashboard.tsx` → `PERIODS` | Períodos do gráfico (24 h, 7 dias, 30 dias; máximo de 720 horas na API) |
 | `lib/auth.ts` e `app/api/login/route.ts` | Duração da sessão (7 dias) |
+| `lib/loginLimit.ts` → `JANELA_MIN`, `MAX_USUARIO_IP`, `MAX_IP` | Limite de tentativas de login (15 min, 5 erros no mesmo usuário, 20 no total) |
 | `lib/push.ts` | Validade do aviso (`TTL` de 1 h) |
 | `app/globals.css` (variáveis no topo) | Cores dos temas claro e escuro |
 | `public/icons/` | Ícones do app e da notificação (`badge-96.png` precisa ser só branco com transparência) |
@@ -412,8 +438,9 @@ As tabelas têm **RLS ligado e nenhuma policy**: só a API, com a chave de servi
 - **Senhas:** guardadas com `scrypt` e sal; a sessão é um JWT em cookie `httpOnly`, e o tipo do usuário é lido do banco a cada requisição (mudar o tipo ou excluir o usuário vale na hora).
 - **`DEVICE_KEY` única:** quem a tiver consegue enviar leituras e criar dispositivos. Guarde-a e troque-a se vazar (variável no Vercel e no firmware).
 - **Chaves do OpenWeatherMap em texto no banco:** não são mostradas de volta na interface, mas ficam gravadas sem criptografia.
-- **Sem limite de tentativas de login:** use uma senha forte na `ADMIN_PASSWORD`.
+- **Limite de tentativas de login (`migration-v6.sql`):** depois de **5 senhas erradas** para o mesmo usuário, ou **20 no total**, vindas do mesmo IP em 15 min, esse IP fica **15 min sem conseguir entrar** (nem com a senha certa), com a mensagem "Muitas tentativas erradas. Tente de novo em X min.". O bloqueio é por IP, então um estranho não consegue trancar a sua conta errando a senha dela. Os erros ficam na tabela `login_failures` e são apagados depois de 1 dia. Sem o `migration-v6.sql`, o login funciona sem limite e o log do Vercel avisa. A senha do usuário principal é comparada em tempo constante. Mesmo assim, use uma senha forte na `ADMIN_PASSWORD`.
 - **Página pública:** expõe só os ESPs marcados, sem IP, firmware, Wi-Fi nem bateria. As consultas de tempo só aceitam cidades já enviadas por um ESP público, com cache de 5 min para proteger a cota do OpenWeatherMap.
+- **Mapa:** as camadas da OpenWeatherMap passam pelo servidor (`/api/mapa/...`, só logado), então a chave não aparece no navegador. O mapa público mostra só o radar do RainViewer e os ESPs públicos, nas coordenadas da **cidade** (não as da casa).
 - **Link do IP:** só aparece clicável para admins e só para endereços IP válidos; funciona apenas na mesma rede do ESP.
 - **Nunca publique chaves no repositório.** O `.gitignore` já ignora o `.env`; confira antes de subir.
 
@@ -434,6 +461,11 @@ As tabelas têm **RLS ligado e nenhuma policy**: só a API, com a chave de servi
 | **Aviso "O sensor parou de ler"** | O ESP enviou `sensor_ok: false`; confira ligação e alimentação do sensor |
 | **"Tempo na cidade" indisponível** | Chave do OpenWeatherMap não cadastrada, recusada ou nova demais (até ~2 h para ativar). Se o `/painel` mostra o tempo mas a página pública não, defina `OWM_PUBLIC_KEY` ou cadastre a chave no usuário principal |
 | **Tempo da cidade não aparece** | O ESP ainda não enviou `city_id` |
+| **"Muitas tentativas erradas"** | O IP errou a senha 5 vezes no mesmo usuário (ou 20 no total) em 15 min: espere o tempo indicado. Para liberar na hora, apague as linhas desse IP na tabela `login_failures` (Supabase > Table Editor) |
+| **ESP não aparece no mapa** | O mapa usa as coordenadas da cidade: precisa do firmware 3.3+ e do `migration-v5.sql` |
+| **Camada do mapa sem cor ou com aviso** | O aviso acima do mapa diz o motivo: sem chave, chave recusada (chaves novas podem levar algumas horas para liberar os mapas) ou falha da OpenWeatherMap |
+| **Radar sem cor em alguma região** | Não há radar meteorológico ali na cobertura do RainViewer, ou não está chovendo |
+| **Sol e Lua sem nascer e pôr** | O ESP ainda não enviou as coordenadas da cidade (firmware 3.3+) |
 | **Página pública vazia** | Nenhum ESP marcado como público em **Dispositivos** |
 | **Não chegam notificações** | Confira as variáveis `VAPID_*` e o `migration-v3.sql`, use **Enviar teste** em Alertas e, no Android, desative a economia de bateria agressiva para o navegador |
 | **Ativar notificações não funciona no iPhone** | Instale o app pela Tela de Início e abra por ele (iOS 16.4 ou mais novo) |
@@ -446,7 +478,7 @@ As tabelas têm **RLS ligado e nenhuma policy**: só a API, com a chave de servi
 ## 📁 Estrutura do repositório
 
 ```
-weatherstation-web/
+estacao-meteorologica-painel/
 ├── app/
 │   ├── page.tsx                  # página pública (tela inicial)
 │   ├── painel/page.tsx           # painel com login
@@ -454,6 +486,7 @@ weatherstation-web/
 │   ├── users/page.tsx            # usuários e acesso (admin)
 │   ├── account/page.tsx          # minha conta (chave da OpenWeatherMap e senha)
 │   ├── alerts/page.tsx           # notificações e alertas por ESP
+│   ├── mapa/page.tsx             # mapa do tempo (radar e camadas)
 │   ├── login/page.tsx            # login
 │   ├── manifest.ts               # manifesto do PWA
 │   ├── layout.tsx, globals.css   # layout, fontes, tema
@@ -465,11 +498,13 @@ weatherstation-web/
 │       ├── cities/, weather/, forecast/
 │       ├── alerts/, alerts/[id]/ # regras de alerta
 │       ├── push/                 # registro do aparelho, chave pública e teste
+│       ├── mapa/                 # camadas da OpenWeatherMap para o mapa (com a chave no servidor)
 │       └── public/               # rotas sem login (só ESPs públicos)
-├── components/                   # Dashboard, TopBar, PublicBar, Notifications, Battery,
+├── components/                   # Dashboard, AppNav, PublicBar, Mapa, SolLua, Notifications, Battery,
 │                                 # IpLink, StatusMsg, ThemeToggle, InstallButton, PwaRegister
-├── lib/                          # auth, password, session, supabase, owm, readings,
-│                                 # readingSchema, public, push, alerts, mask, format
+├── lib/                          # auth, password, session, supabase, owm, readings, readingSchema,
+│                                 # public, push, alerts, mask, format, city, lua (Sol e Lua)
+├── esp8266/EnvioPainel.h         # exemplo antigo de envio (o firmware completo já faz isso)
 ├── public/                       # sw.js, offline.html e ícones do app
 ├── middleware.ts                 # protege páginas e API (exceto página pública, login e POST de leituras)
 ├── next.config.mjs
@@ -479,6 +514,7 @@ weatherstation-web/
 ├── migration-v3.sql              # notificações push e alertas
 ├── migration-v4.sql              # diagnóstico do ESP e eventos de alerta
 ├── migration-v5.sql              # coordenadas da cidade (lat/lon)
+├── migration-v6.sql              # limite de tentativas de login
 ├── .env.example
 └── README.md
 ```
@@ -499,6 +535,9 @@ weatherstation-web/
 | **1.7** | API com **22 campos** (`lat` e `lon`, firmware 3.3+): clima e previsão consultados **por coordenadas** e cidades **sem `city_id`** aceitas (código interno pelas coordenadas); `migration-v5.sql` |
 | **1.8** | **Novo visual no estilo da `/config` do ESP**: barra lateral com ícones (no celular, abas embaixo), títulos grandes, cartões em linhas (rótulo e valor), chaves liga/desliga e fonte do sistema; página **Alertas** separada de Minha conta |
 | **1.8.1** | Bloco **Dispositivo** dividido em três cartões (Identificação, Estado e Funcionamento) e alertas por ESP em listas, com o campo e a unidade à direita e as chaves alinhadas |
+| **1.8.2** | Nomes em português: pacote `estacao-meteorologica-painel` e exemplo `esp8266/EnvioPainel.h` (antes `WeatherApi.h`); `package-lock.json` incluído |
+| **1.9** | **Sol e Lua** no painel e na página pública (fase com desenho, % iluminada, nascer e pôr da Lua e do Sol, próximas Lua cheia e nova). Novo menu **Mapa** (`/mapa`): OpenStreetMap com tema escuro, ESPs com balão (temperatura, umidade e, logado, Wi-Fi e bateria com ícones), **radar de chuva** animado (RainViewer) e, logado, camadas de temperatura, chuva, nuvens, vento e pressão da OpenWeatherMap pelo servidor; `/api/public/devices` envia as coordenadas da cidade |
+| **1.9.1** | **Limite de tentativas de login** (5 erros no mesmo usuário ou 20 no total bloqueiam o IP por 15 min, com o tempo restante na mensagem), guardado na tabela `login_failures` (`migration-v6.sql`); senha do usuário principal comparada em tempo constante |
 
 ---
 
@@ -508,7 +547,7 @@ weatherstation-web/
 - Detecção de **vazamento de memória** pela tendência de `free_heap` (o histórico já é guardado).
 - **Qualidade do ar** da cidade e comparação entre dois ESPs.
 - **Chave própria por ESP** no lugar da `DEVICE_KEY` única.
-- Limite de tentativas de login e criptografia das chaves do OpenWeatherMap no banco.
+- Criptografia das chaves do OpenWeatherMap no banco.
 - Resumos por hora e limpeza das leituras antigas, para manter o banco pequeno.
 - **Configuração remota** do ESP pela resposta do envio (intervalo e cidade).
 - Notificações por **Telegram** como canal extra, **MQTT / Home Assistant** e tradução do README para inglês.
@@ -518,17 +557,18 @@ weatherstation-web/
 ## 🙏 Créditos e licença
 
 - Dados meteorológicos e ícones do tempo: [OpenWeatherMap](https://openweathermap.org/).
+- Mapa: dados © [colaboradores do OpenStreetMap](https://www.openstreetmap.org/copyright), radar do [RainViewer](https://www.rainviewer.com/), biblioteca [Leaflet](https://leafletjs.com/) e cálculo do Sol e da Lua com [suncalc](https://github.com/mourner/suncalc).
 - Banco: [Supabase](https://supabase.com/). Hospedagem: [Vercel](https://vercel.com/).
 - Bibliotecas: [Next.js](https://nextjs.org/), [React](https://react.dev/), [Recharts](https://recharts.org/), [jose](https://github.com/panva/jose), [web-push](https://github.com/web-push-libs/web-push) e [Zod](https://zod.dev/).
 - Fonte: a do sistema (sem fontes externas).
-- Firmware: **WeatherStation ESP8266**, que é o par deste painel.
+- Firmware: **Estação Meteorológica ESP8266**, que é o par deste painel.
 
 Este projeto é distribuído sob a **licença MIT**. Inclua um arquivo `LICENSE` na raiz do repositório.
 
 ```
 MIT License
 
-Copyright (c) 2026 Luismar Pavani
+Copyright (c) 2026 SEU NOME
 
 É concedida permissão, gratuitamente, a qualquer pessoa que obtenha uma cópia deste
 software e dos arquivos de documentação associados, para lidar com o Software sem

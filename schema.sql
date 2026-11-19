@@ -96,3 +96,15 @@ create table alert_state (
 alter table push_subscriptions enable row level security;
 alter table alert_rules enable row level security;
 alter table alert_state enable row level security;
+
+-- Limite de tentativas de login (senhas erradas recentes por usuário e IP; apagadas depois de 1 dia)
+create table login_failures (
+  id bigserial primary key,
+  username text not null,
+  ip text not null,
+  at timestamptz not null default now()
+);
+create index login_failures_ip_at on login_failures (ip, at desc);
+create index login_failures_user_ip_at on login_failures (username, ip, at desc);
+create index login_failures_at on login_failures (at);
+alter table login_failures enable row level security;
