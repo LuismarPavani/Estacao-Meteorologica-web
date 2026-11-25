@@ -19,8 +19,9 @@ const CONTA: Item[] = [
   { href: '/account', label: 'Minha conta', curto: 'Conta', icone: '👤', cor: '#66bb6a' },
   { href: '/users', label: 'Usuários', curto: 'Usuários', icone: '👥', cor: '#9fa8da', admin: true },
   { href: '/', label: 'Página pública', curto: 'Pública', icone: '🌐', cor: '#78909c' },
+  { href: '/sobre', label: 'Sobre', curto: 'Sobre', icone: 'ℹ️', cor: '#4fc3f7' },
 ];
-// Abas do celular: as 5 principais (Usuários, Página pública, tema e Sair ficam em Minha conta)
+// Abas do celular: as 5 principais (Usuários, Página pública, Sobre, tema e Sair ficam em Minha conta)
 const ABAS = [ESTACOES[0], ESTACOES[1], ESTACOES[2], ESTACOES[3], CONTA[0]];
 
 export type Me = { username: string; role: string };
@@ -91,6 +92,7 @@ export function MaisNoCelular({ me }: { me: Me | null }) {
       <section className="panel list">
         {me?.role === 'admin' && <Link className="li" href="/users"><span className="k">👥  Usuários</span><span className="v">›</span></Link>}
         <Link className="li" href="/"><span className="k">🌐  Página pública</span><span className="v">›</span></Link>
+        <Link className="li" href="/sobre"><span className="k">ℹ️  Sobre</span><span className="v">›</span></Link>
         <div className="li"><span className="k">Tema</span><ThemeToggle /></div>
         <InstallButton variant="li" />
         <button className="li" onClick={logout} style={{ color: 'var(--bad)' }}><span className="k">Sair{me ? ` (${me.username})` : ''}</span></button>

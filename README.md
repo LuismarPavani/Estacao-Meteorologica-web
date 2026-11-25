@@ -6,7 +6,7 @@ Painel web para acompanhar uma ou mais estações meteorológicas **ESP8266**: r
 ![Banco](https://img.shields.io/badge/banco-Supabase-3ECF8E)
 ![Hospedagem](https://img.shields.io/badge/hospedagem-Vercel-black)
 ![PWA](https://img.shields.io/badge/PWA-instal%C3%A1vel-5A0FC8)
-![Versão](https://img.shields.io/badge/painel-1.9-success)
+![Versão](https://img.shields.io/badge/painel-1.10.0-success)
 ![Licença](https://img.shields.io/badge/licen%C3%A7a-MIT-lightgrey)
 
 > Este painel é o par do firmware **Estação Meteorológica ESP8266** (veja o README do firmware): o ESP envia 20 campos a cada 15 min e este projeto os recebe, guarda e exibe.
@@ -487,6 +487,7 @@ estacao-meteorologica-painel/
 │   ├── account/page.tsx          # minha conta (chave da OpenWeatherMap e senha)
 │   ├── alerts/page.tsx           # notificações e alertas por ESP
 │   ├── mapa/page.tsx             # mapa do tempo (radar e camadas)
+│   ├── sobre/page.tsx            # sobre o projeto, links e manual (README do GitHub)
 │   ├── login/page.tsx            # login
 │   ├── manifest.ts               # manifesto do PWA
 │   ├── layout.tsx, globals.css   # layout, fontes, tema
@@ -503,7 +504,7 @@ estacao-meteorologica-painel/
 ├── components/                   # Dashboard, AppNav, PublicBar, Mapa, SolLua, Notifications, Battery,
 │                                 # IpLink, StatusMsg, ThemeToggle, InstallButton, PwaRegister
 ├── lib/                          # auth, password, session, supabase, owm, readings, readingSchema,
-│                                 # public, push, alerts, mask, format, city, lua (Sol e Lua)
+│                                 # public, push, alerts, mask, format, city, lua (Sol e Lua), sobre (links e README)
 ├── esp8266/EnvioPainel.h         # exemplo antigo de envio (o firmware completo já faz isso)
 ├── public/                       # sw.js, offline.html e ícones do app
 ├── middleware.ts                 # protege páginas e API (exceto página pública, login e POST de leituras)
@@ -538,6 +539,7 @@ estacao-meteorologica-painel/
 | **1.8.2** | Nomes em português: pacote `estacao-meteorologica-painel` e exemplo `esp8266/EnvioPainel.h` (antes `WeatherApi.h`); `package-lock.json` incluído |
 | **1.9** | **Sol e Lua** no painel e na página pública (fase com desenho, % iluminada, nascer e pôr da Lua e do Sol, próximas Lua cheia e nova). Novo menu **Mapa** (`/mapa`): OpenStreetMap com tema escuro, ESPs com balão (temperatura, umidade e, logado, Wi-Fi e bateria com ícones), **radar de chuva** animado (RainViewer) e, logado, camadas de temperatura, chuva, nuvens, vento e pressão da OpenWeatherMap pelo servidor; `/api/public/devices` envia as coordenadas da cidade |
 | **1.9.1** | **Limite de tentativas de login** (5 erros no mesmo usuário ou 20 no total bloqueiam o IP por 15 min, com o tempo restante na mensagem), guardado na tabela `login_failures` (`migration-v6.sql`); senha do usuário principal comparada em tempo constante |
+| **1.10.0** | Página **Sobre** (`/sobre`, aberta a todos): resumo do projeto, links do GitHub (firmware, painel e perfil) e do painel online, e o **manual** do firmware ou do painel (README lido do GitHub, com 1 h de cache, mostrado com `react-markdown`, `remark-gfm` e `rehype-slug`). Link no menu (Conta → Sobre; no celular em Minha conta) e no topo da página pública |
 
 ---
 

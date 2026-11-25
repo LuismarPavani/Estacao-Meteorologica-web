@@ -7,7 +7,8 @@ import ThemeToggle from './ThemeToggle';
 // Topo da página pública: link para o mapa (ou de volta ao início) e botão Entrar no canto (ou Painel, se já estiver logado)
 export default function PublicBar() {
   const [logged, setLogged] = useState(false);
-  const noMapa = usePathname() === '/mapa';
+  const path = usePathname();
+  const noMapa = path === '/mapa';
   useEffect(() => { fetch('/api/me').then(r => setLogged(r.ok)); }, []);
   return (
     <header className="top">
@@ -18,7 +19,9 @@ export default function PublicBar() {
         Estação meteorológica
       </div>
       <nav>
-        {noMapa ? <Link href="/">Início</Link> : <Link href="/mapa">🗺️ Mapa</Link>}
+        {path !== '/' && <Link href="/">Início</Link>}
+        {!noMapa && <Link href="/mapa">🗺️ Mapa</Link>}
+        {path !== '/sobre' && <Link href="/sobre">ℹ️ Sobre</Link>}
         <InstallButton />
         <ThemeToggle />
         <Link className="btn-link" href={logged ? '/painel' : '/login'}>{logged ? 'Painel' : 'Entrar'}</Link>

@@ -6,6 +6,7 @@ export async function middleware(req: NextRequest) {
   const isPublic =
     pathname === '/' ||                       // página pública
     pathname === '/mapa' ||                   // mapa (sem login: só o radar e os ESPs públicos)
+    pathname === '/sobre' ||                  // sobre o projeto e o manual (README do GitHub)
     pathname === '/login' ||
     pathname === '/api/login' ||
     pathname.startsWith('/api/public/') ||
